@@ -510,11 +510,30 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                                     </div>
                                                 ) : (
                                                     <>
+                                                        <div className="px-3 pb-2 mb-2 border-b border-border">
+                                                            <div className="flex items-center gap-2">
+                                                                <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                                <input
+                                                                    className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50 font-medium h-8 w-full"
+                                                                    placeholder="Search products & SKU..."
+                                                                    value={productSearchTerm}
+                                                                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                                                                    autoFocus
+                                                                />
+                                                            </div>
+                                                        </div>
                                                         <div className="max-h-[300px] overflow-y-auto py-2">
-                                                            {products.map((p: Product) => (
+                                                            {filteredProducts.length === 0 && (
+                                                                <div className="py-8 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">No matches found</div>
+                                                            )}
+                                                            {filteredProducts.map((p: Product) => (
                                                                 <Button key={p.id} variant="ghost" className="w-full justify-between h-10 px-4 text-xs font-medium" onClick={() => handleAddProductToDeal(p)}>
-                                                                    <span className="flex items-center gap-2"><Package className="h-3 w-3 text-muted-foreground" /> {p.name}</span>
-                                                                    <span className="font-mono text-muted-foreground">${Number(p.defaultPrice)}</span>
+                                                                    <span className="flex items-center gap-2 truncate">
+                                                                        <Package className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                                        <span className="truncate">{p.name}</span>
+                                                                        {p.sku && <span className="font-mono text-[9px] text-muted-foreground bg-muted px-1 rounded">{p.sku}</span>}
+                                                                    </span>
+                                                                    <span className="font-mono text-muted-foreground shrink-0">${Number(p.defaultPrice)}</span>
                                                                 </Button>
                                                             ))}
                                                         </div>
