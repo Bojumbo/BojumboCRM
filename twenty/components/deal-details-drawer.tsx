@@ -40,7 +40,7 @@ import { getProducts, createProduct } from "@/app/actions/product";
 import { getCounterparties } from "@/app/actions/counterparty";
 import { Deal, Comment, DealProduct, Product, Counterparty } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, MessageSquare, Package, X, User, Building2, Hash, Briefcase, ExternalLink, Send } from "lucide-react";
+import { Plus, Trash2, Loader2, MessageSquare, Package, X, User, Building2, Hash, Briefcase, Send, FileText, Layers, Search, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -71,6 +71,17 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
     const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
     const [newComment, setNewComment] = useState("");
     const { toast } = useToast();
+
+    const [comboboxOpen, setComboboxOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredCounterparties = counterparties.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c as any).email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c as any).phone?.includes(searchTerm)
+    );
+
+    const [activeTab, setActiveTab] = useState<'comments' | 'products' | 'documents'>('comments');
 
     const [isCreatingProduct, setIsCreatingProduct] = useState(false);
     const [newProductData, setNewProductData] = useState({
@@ -180,7 +191,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
     if (!deal && loading) {
         return (
             <Sheet open={open} onOpenChange={onOpenChange}>
-                <SheetContent className="max-w-4xl bg-background border-border p-0 flex items-center justify-center">
+                <SheetContent className="w-[80vw] !max-w-[80vw] bg-background border-border p-0 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                 </SheetContent>
             </Sheet>
@@ -191,351 +202,397 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            {/* Виправлено: додано [&>button]:hidden для уникнення дублювання хрестика */}
-            <SheetContent className="sm:max-w-4xl lg:max-w-[70vw] bg-background border-l border-border p-0 flex flex-col shadow-2xl overflow-hidden focus:outline-none focus:ring-0 [&>button]:hidden">
+            <SheetContent className="w-[80vw] !max-w-[80vw] bg-background border-l border-border p-0 flex flex-row shadow-2xl overflow-hidden focus:outline-none focus:ring-0 [&>button]:hidden sm:max-w-none">
 
-                {/* Header Section */}
-                <div className="p-8 border-b border-border bg-muted/20 z-10 relative">
-
-                    {/* Кнопка закриття (Ручна реалізація для контролю положення) */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-4 top-4 h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-all"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="flex items-center gap-6 flex-1 min-w-0">
-                            <div className="h-16 w-16 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm text-blue-500">
-                                <Briefcase className="h-8 w-8" />
+                {/* LEFT COLUMN (25%) - Information & Metadata */}
+                <div className="w-1/4 min-w-[300px] border-r border-border bg-muted/10 flex flex-col h-full z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
+                    {/* Header Info */}
+                    <div className="p-6 border-b border-border bg-background/50 backdrop-blur-sm space-y-6">
+                        <div className="flex items-start justify-between">
+                            <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+                                <Briefcase className="h-6 w-6" />
                             </div>
-                            <div className="flex-1 min-w-0 space-y-1.5">
-                                <div className="flex items-center gap-3">
-                                    <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5">
-                                        {deal.status}
-                                    </Badge>
-                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate">LOG_ID: {deal.id}</span>
-                                </div>
-                                <Input
-                                    value={deal.title}
-                                    onChange={(e) => setDeal({ ...deal, title: e.target.value })}
-                                    onBlur={() => handleUpdateDeal("title", deal.title)}
-                                    className="text-2xl font-black bg-transparent border-transparent hover:border-border focus:border-blue-500/50 focus:bg-muted/30 h-auto p-0 hover:px-3 focus:px-3 transition-all rounded-md text-foreground"
-                                />
+                            <div className="flex flex-col items-end">
+                                <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
+                                    {deal.status}
+                                </Badge>
+                                <span className="text-[8px] text-muted-foreground font-mono mt-1 opacity-50">ID: {deal.id.split('-')[0]}</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-                            <div className="text-right">
-                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Total Valuation</p>
-                                <p className="text-3xl font-black text-foreground font-mono leading-none tracking-tighter">${Number(deal.amount).toLocaleString()}</p>
+
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Deal Title</label>
+                            <Input
+                                value={deal.title}
+                                onChange={(e) => setDeal({ ...deal, title: e.target.value })}
+                                onBlur={() => handleUpdateDeal("title", deal.title)}
+                                className="text-lg font-bold bg-transparent border-transparent hover:border-border focus:border-blue-500/50 focus:bg-background h-auto px-2 py-1 -ml-2 transition-all rounded-md text-foreground"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Valuation</label>
+                            <div className="text-3xl font-black text-foreground font-mono tracking-tighter">
+                                ${Number(deal.amount).toLocaleString()}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex-1 flex flex-col md:flex-row min-h-0">
-                    {/* Main Content Area */}
-                    <div className="flex-1 flex flex-col min-h-0 border-r border-border">
-                        <ScrollArea className="flex-1">
-                            <div className="p-10 space-y-12">
-                                {/* Configuration Section */}
-                                <section className="space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Operational Config</h3>
-                                        <div className="h-[1px] flex-1 bg-border/50 ml-4" />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                <User className="h-3 w-3" /> Counterparty Node
-                                            </label>
-                                            <Select
-                                                value={deal.counterpartyId || "none"}
-                                                onValueChange={(val) => handleUpdateDeal('counterpartyId', val === "none" ? null : val)}
-                                            >
-                                                <SelectTrigger className="h-11 bg-muted/40 border-border rounded-md text-sm font-bold text-foreground focus:border-blue-500/30">
-                                                    <SelectValue placeholder="System Lookup..." />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-popover border-border text-popover-foreground">
-                                                    <SelectItem value="none">De-linked</SelectItem>
-                                                    {counterparties.map(c => (
-                                                        <SelectItem key={c.id} value={c.id}>
-                                                            <div className="flex items-center gap-2">
-                                                                {c.type === 'COMPANY' ? <Building2 className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-                                                                {c.name}
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                    {/* Scrollable Details */}
+                    <ScrollArea className="flex-1">
+                        <div className="p-6 space-y-8">
+                            {/* Counterparty Config */}
+                            <div className="space-y-3">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <User className="h-3 w-3" /> Counterparty Node
+                                </label>
+                                <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={comboboxOpen}
+                                            className="w-full justify-between h-9 text-xs font-bold bg-background border-border"
+                                        >
+                                            {deal.counterpartyId
+                                                ? counterparties.find((c) => c.id === deal.counterpartyId)?.name
+                                                : "Select Counterparty..."}
+                                            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0 bg-popover border-border" align="start">
+                                        <div className="flex items-center border-b border-border px-3">
+                                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
+                                            <input
+                                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-xs outline-none placeholder:text-muted-foreground/50 text-foreground font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                                                placeholder="Search by name, email, phone..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                autoFocus
+                                            />
                                         </div>
-
-                                        <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                <Hash className="h-3 w-3" /> Sequence Reference
-                                            </label>
-                                            <div className="h-11 px-4 bg-muted/20 border border-border rounded-md flex items-center text-xs font-mono text-muted-foreground italic">
-                                                {deal.id.split('-')[0].toUpperCase()} / 2024 / STABLE
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                            Description Protocol
-                                        </label>
-                                        <Textarea
-                                            value={deal.description || ""}
-                                            onChange={(e) => setDeal({ ...deal, description: e.target.value })}
-                                            onBlur={() => handleUpdateDeal("description", deal.description || "")}
-                                            placeholder="Enter operational parameters..."
-                                            className="bg-muted/10 border-border rounded-md resize-none min-h-[120px] focus:border-blue-500/30 text-sm leading-relaxed text-foreground"
-                                        />
-                                    </div>
-                                </section>
-
-                                {/* Manifest Section (Line Items) */}
-                                <section className="space-y-8">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Inventory Manifest</h3>
-                                            <Badge variant="outline" className="h-5 px-1.5 border-border text-[9px] font-black text-muted-foreground uppercase tracking-tighter">
-                                                {deal.products.length} Items Loaded
-                                            </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 hover:text-blue-400">
-                                                        <Plus className="mr-2 h-3.5 w-3.5" /> Append Item
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[380px] p-0 bg-popover border-border shadow-2xl overflow-hidden" align="end">
-                                                    <div className="p-2">
-                                                        {isCreatingProduct ? (
-                                                            <div className="p-6 space-y-5">
-                                                                <div className="flex justify-between items-center">
-                                                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Matrix Injection</h5>
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setIsCreatingProduct(false)}>
-                                                                        <X className="h-3.5 w-3.5" />
-                                                                    </Button>
-                                                                </div>
-                                                                <Input
-                                                                    placeholder="Label Designation"
-                                                                    value={newProductData.name}
-                                                                    onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
-                                                                    className="h-10 bg-muted/30 border-border text-sm"
-                                                                />
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    <Input
-                                                                        placeholder="Valuation"
-                                                                        type="number"
-                                                                        value={newProductData.defaultPrice}
-                                                                        onChange={(e) => setNewProductData({ ...newProductData, defaultPrice: e.target.value })}
-                                                                        className="h-10 bg-muted/30 border-border text-sm font-mono"
-                                                                    />
-                                                                    <Input
-                                                                        placeholder="SKU Code"
-                                                                        value={newProductData.sku}
-                                                                        onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })}
-                                                                        className="h-10 bg-muted/30 border-border text-sm font-mono"
-                                                                    />
-                                                                </div>
-                                                                <Button className="w-full bg-blue-600 hover:bg-blue-500 font-black h-10 text-[10px] uppercase tracking-widest text-white" onClick={handleCreateNewProduct}>COMMENCE INJECTION</Button>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <div className="max-h-[300px] overflow-y-auto py-2">
-                                                                    {products.length === 0 && (
-                                                                        <p className="text-[10px] text-muted-foreground font-bold uppercase p-10 text-center tracking-widest">No Buffer Entries</p>
-                                                                    )}
-                                                                    {products.map((p: Product) => (
-                                                                        <Button
-                                                                            key={p.id}
-                                                                            variant="ghost"
-                                                                            className="w-full justify-between h-12 px-4 text-xs font-bold text-foreground hover:bg-accent hover:text-accent-foreground rounded-md"
-                                                                            onClick={() => handleAddProductToDeal(p)}
-                                                                        >
-                                                                            <span className="flex items-center gap-2"><Package className="h-3 w-3 text-muted-foreground" /> {p.name}</span>
-                                                                            <span className="font-mono text-muted-foreground">${Number(p.defaultPrice)}</span>
-                                                                        </Button>
-                                                                    ))}
-                                                                </div>
-                                                                <div className="p-2 border-t border-border">
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        className="w-full justify-center h-10 text-[9px] text-muted-foreground hover:text-blue-500 font-black uppercase tracking-widest"
-                                                                        onClick={() => setIsCreatingProduct(true)}
-                                                                    >
-                                                                        <Plus className="mr-2 h-3.5 w-3.5" /> Initialize New Matrix
-                                                                    </Button>
-                                                                </div>
-                                                            </>
+                                        <div className="max-h-[300px] overflow-y-auto p-1">
+                                            {filteredCounterparties.length === 0 && (
+                                                <div className="py-6 text-center text-xs font-medium text-muted-foreground">No matches found.</div>
+                                            )}
+                                            {filteredCounterparties.map((c) => (
+                                                <div
+                                                    key={c.id}
+                                                    className={cn(
+                                                        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-xs outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors",
+                                                        deal.counterpartyId === c.id && "bg-accent text-accent-foreground"
+                                                    )}
+                                                    onClick={() => {
+                                                        handleUpdateDeal('counterpartyId', c.id);
+                                                        setComboboxOpen(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-3 w-3 text-blue-500",
+                                                            deal.counterpartyId === c.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    <div className="flex flex-col min-w-0 flex-1">
+                                                        <span className="font-bold truncate">{c.name}</span>
+                                                        {((c as any).email || (c as any).phone) && (
+                                                            <span className="text-[9px] text-muted-foreground font-mono truncate opacity-70">
+                                                                {(c as any).email} {(c as any).phone ? `• ${(c as any).phone}` : ''}
+                                                            </span>
                                                         )}
                                                     </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-                                        <Table>
-                                            <TableHeader className="bg-muted/50 border-b border-border">
-                                                <TableRow className="hover:bg-transparent border-none">
-                                                    <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Component</TableHead>
-                                                    <TableHead className="w-[140px] px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unit Val</TableHead>
-                                                    <TableHead className="w-[100px] px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">Qty</TableHead>
-                                                    <TableHead className="text-right w-[140px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Aggregate</TableHead>
-                                                    <TableHead className="w-[60px] px-6 py-4"></TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {deal.products.length === 0 && (
-                                                    <TableRow className="hover:bg-transparent border-none">
-                                                        <TableCell colSpan={5} className="text-center py-20 border-none">
-                                                            <div className="flex flex-col items-center gap-3 opacity-30">
-                                                                <Package className="h-10 w-10 text-muted-foreground" />
-                                                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Buffer Empty: No Line Items Assigned</p>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                                {deal.products.map((dp) => (
-                                                    <TableRow key={dp.id} className="hover:bg-muted/30 border-b border-border transition-colors">
-                                                        <TableCell className="px-6 py-5">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-sm font-bold text-foreground">{dp.product.name}</span>
-                                                                <span className="text-[9px] font-mono text-muted-foreground uppercase mt-0.5">{dp.product.sku || 'NOC_SKU'}</span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="px-6 py-5">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <span className="text-[10px] font-black text-muted-foreground focus-within:text-blue-500 transition-colors">$</span>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={Number(dp.priceAtSale)}
-                                                                    onChange={(e) => handleUpdateProductPrice(dp.id, Number(e.target.value))}
-                                                                    className="h-8 w-24 text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-xs text-foreground rounded-md"
-                                                                />
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="px-6 py-5">
-                                                            <Input
-                                                                type="number"
-                                                                value={dp.quantity}
-                                                                onChange={(e) => handleUpdateProductQuantity(dp.id, Number(e.target.value))}
-                                                                className="h-8 w-16 mx-auto text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-xs text-foreground rounded-md"
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="text-right px-6 py-5 font-black font-mono text-foreground text-sm">
-                                                            ${(Number(dp.priceAtSale) * dp.quantity).toLocaleString()}
-                                                        </TableCell>
-                                                        <TableCell className="px-6 py-5">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all rounded-md"
-                                                                onClick={() => handleRemoveProduct(dp.id)}
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </section>
-                            </div>
-                        </ScrollArea>
-                    </div>
-
-                    {/* Sidebar / Comments & Logs */}
-                    <div className="w-full md:w-[420px] lg:w-[480px] flex flex-col bg-muted/10 z-0">
-                        <div className="p-8 border-b border-border bg-background/80 backdrop-blur-md">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-3">
-                                <MessageSquare className="h-4 w-4 text-blue-500/70" /> Logic Communication Logs
-                            </h4>
-                        </div>
-                        <div className="flex-1 min-h-0 bg-gradient-to-b from-transparent to-muted/20">
-                            <ScrollArea className="h-full px-8 py-10">
-                                <div className="space-y-10">
-                                    {deal.comments.length === 0 && (
-                                        <div className="text-center py-24 space-y-6 flex flex-col items-center">
-                                            <div className="h-16 w-16 rounded-full bg-muted border border-border flex items-center justify-center">
-                                                <MessageSquare className="h-6 w-6 text-muted-foreground" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No Communication Logs Detected</p>
-                                                <p className="text-[9px] text-muted-foreground font-bold uppercase mt-2 tracking-tighter">System awaiting input sequence...</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {deal.comments.map((comment: Comment) => (
-                                        <div key={comment.id} className="group/comment space-y-3 relative">
-                                            <div className="flex justify-between items-center mr-1">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-7 w-7 rounded-lg bg-card border border-border flex items-center justify-center text-[10px] font-black text-blue-500 shadow-sm">
-                                                        AU
-                                                    </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Admin_Terminal</span>
                                                 </div>
-                                                <span className="text-[9px] text-muted-foreground font-bold uppercase tabular-nums">
-                                                    {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            </div>
-                                            <div className="p-5 bg-card border border-border rounded-2xl rounded-tl-none group-hover/comment:bg-accent group-hover/comment:border-accent-foreground/10 transition-all shadow-sm">
-                                                <p className="text-xs leading-relaxed text-foreground font-medium">{comment.content}</p>
+                                            ))}
+                                            <div
+                                                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-[10px] outline-none hover:bg-red-500/10 hover:text-red-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 mt-1 border-t border-border font-black uppercase tracking-widest text-muted-foreground transition-colors justify-center"
+                                                onClick={() => {
+                                                    handleUpdateDeal('counterpartyId', null);
+                                                    setComboboxOpen(false);
+                                                }}
+                                            >
+                                                <X className="mr-2 h-3 w-3" />
+                                                De-link Counterparty
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        </div>
-                        <div className="p-8 border-t border-border bg-background/80 backdrop-blur-md">
-                            <div className="relative isolate group">
-                                <Textarea
-                                    placeholder="Enter communication sequence..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    className="bg-background border-border min-h-[110px] text-xs pr-12 resize-none rounded-xl focus:border-blue-500/50 focus:bg-background transition-all text-foreground placeholder:text-muted-foreground/50"
-                                />
-                                <Button
-                                    className="absolute bottom-3 right-3 h-10 w-10 p-0 rounded-lg bg-primary text-primary-foreground border border-border hover:bg-blue-600 transition-all disabled:opacity-30 shadow-lg"
-                                    onClick={handleAddComment}
-                                    disabled={!newComment.trim()}
-                                >
-                                    <Send className="h-4 w-4" />
-                                </Button>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <Hash className="h-3 w-3" /> Sequence Reference
+                                </label>
+                                <div className="h-9 px-3 bg-muted/20 border border-border rounded-md flex items-center text-[10px] font-mono text-muted-foreground">
+                                    {deal.id.split('-')[0].toUpperCase()} / 2024 / STABLE
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    Description Protocol
+                                </label>
+                                <Textarea
+                                    value={deal.description || ""}
+                                    onChange={(e) => setDeal({ ...deal, description: e.target.value })}
+                                    onBlur={() => handleUpdateDeal("description", deal.description || "")}
+                                    placeholder="Enter operational parameters..."
+                                    className="bg-background border-border rounded-md resize-none min-h-[120px] focus:border-blue-500/30 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/40"
+                                />
+                            </div>
+                        </div>
+                    </ScrollArea>
+
+                    {/* Left Footer */}
+                    <div className="p-4 border-t border-border bg-background/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-3 opacity-60">
+                            <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">System Active</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Status Bar */}
-                <div className="p-6 bg-muted/20 border-t border-border flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="h-8 w-8 rounded-lg bg-card border border-border flex items-center justify-center">
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {/* RIGHT COLUMN (75%) - Tabs & Content */}
+                <div className="flex-1 flex flex-col h-full bg-background min-w-0">
+                    {/* Header / Tabs Nav */}
+                    <div className="h-16 border-b border-border flex items-center justify-between px-6 bg-background shrink-0">
+                        <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-lg border border-border/50">
+                            <button
+                                onClick={() => setActiveTab('comments')}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'comments'
+                                        ? "bg-background text-foreground shadow-sm border border-border/50"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare className="h-3.5 w-3.5" />
+                                    Communication
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('products')}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'products'
+                                        ? "bg-background text-foreground shadow-sm border border-border/50"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Package className="h-3.5 w-3.5" />
+                                    Inventory
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('documents')}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'documents'
+                                        ? "bg-background text-foreground shadow-sm border border-border/50"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    Documents
+                                </div>
+                            </button>
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">Matrix State Synchronized</span>
-                            <span className="text-[8px] text-muted-foreground/60 font-bold uppercase">System: Operational</span>
-                        </div>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full transition-all"
+                            onClick={() => onOpenChange(false)}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex flex-col text-right">
-                            <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Modified By</span>
-                            <span className="text-[9px] font-black text-foreground uppercase">SYS_ADMIN</span>
-                        </div>
-                        <div className="h-8 w-[1px] bg-border" />
-                        <Badge className="bg-background text-muted-foreground border-border text-[9px] font-black uppercase px-2">
-                            v.1.2.0
-                        </Badge>
+
+                    {/* Content Area */}
+                    <div className="flex-1 min-h-0 bg-muted/5 relative">
+                        {/* COMMENTS TAB */}
+                        {activeTab === 'comments' && (
+                            <div className="h-full flex flex-col">
+                                <ScrollArea className="flex-1 p-6">
+                                    <div className="max-w-3xl mx-auto space-y-8">
+                                        {deal.comments.length === 0 && (
+                                            <div className="text-center py-24 space-y-6 flex flex-col items-center opacity-50">
+                                                <div className="h-16 w-16 rounded-full bg-muted border border-border flex items-center justify-center">
+                                                    <MessageSquare className="h-6 w-6 text-muted-foreground" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No Communication Logs</p>
+                                                    <p className="text-[9px] text-muted-foreground font-bold uppercase mt-2 tracking-tighter">System awaiting input sequence...</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {deal.comments.map((comment: Comment) => (
+                                            <div key={comment.id} className="group/comment flex gap-4">
+                                                <div className="h-8 w-8 rounded-lg bg-card border border-border flex items-center justify-center text-[10px] font-black text-blue-500 shadow-sm shrink-0 mt-1">
+                                                    AU
+                                                </div>
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Admin_Terminal</span>
+                                                        <span className="text-[9px] text-muted-foreground font-bold uppercase tabular-nums opacity-50">
+                                                            {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                    <div className="p-4 bg-card border border-border rounded-xl rounded-tl-none shadow-sm text-sm text-foreground leading-relaxed">
+                                                        {comment.content}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                                <div className="p-4 border-t border-border bg-background">
+                                    <div className="max-w-3xl mx-auto relative isolate group">
+                                        <Textarea
+                                            placeholder="Enter communication sequence..."
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            className="bg-muted/30 border-border min-h-[80px] text-xs pr-14 resize-none rounded-xl focus:border-blue-500/50 focus:bg-background transition-all text-foreground placeholder:text-muted-foreground/50"
+                                        />
+                                        <Button
+                                            className="absolute bottom-3 right-3 h-8 w-8 p-0 rounded-lg bg-blue-600 text-white hover:bg-blue-500 shadow-lg"
+                                            onClick={handleAddComment}
+                                            disabled={!newComment.trim()}
+                                        >
+                                            <Send className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PRODUCTS TAB */}
+                        {activeTab === 'products' && (
+                            <div className="h-full flex flex-col">
+                                <div className="p-4 border-b border-border bg-background flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Manifest</h3>
+                                        <Badge variant="outline" className="h-5 px-1.5 border-border text-[9px] font-black text-muted-foreground uppercase tracking-tighter">
+                                            {deal.products.length} Items Loaded
+                                        </Badge>
+                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase tracking-widest text-foreground hover:bg-muted">
+                                                <Plus className="mr-2 h-3.5 w-3.5" /> Append Item
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[380px] p-0 bg-popover border-border shadow-2xl overflow-hidden" align="end">
+                                            <div className="p-2">
+                                                {isCreatingProduct ? (
+                                                    <div className="p-6 space-y-5">
+                                                        <div className="flex justify-between items-center">
+                                                            <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Matrix Injection</h5>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setIsCreatingProduct(false)}>
+                                                                <X className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                        <Input placeholder="Label Designation" value={newProductData.name} onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })} className="h-9 text-xs" />
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <Input placeholder="Valuation" type="number" value={newProductData.defaultPrice} onChange={(e) => setNewProductData({ ...newProductData, defaultPrice: e.target.value })} className="h-9 text-xs font-mono" />
+                                                            <Input placeholder="SKU Code" value={newProductData.sku} onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })} className="h-9 text-xs font-mono" />
+                                                        </div>
+                                                        <Button className="w-full bg-blue-600 hover:bg-blue-500 font-black h-9 text-[10px] uppercase tracking-widest text-white" onClick={handleCreateNewProduct}>COMMENCE INJECTION</Button>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="max-h-[300px] overflow-y-auto py-2">
+                                                            {products.map((p: Product) => (
+                                                                <Button key={p.id} variant="ghost" className="w-full justify-between h-10 px-4 text-xs font-medium" onClick={() => handleAddProductToDeal(p)}>
+                                                                    <span className="flex items-center gap-2"><Package className="h-3 w-3 text-muted-foreground" /> {p.name}</span>
+                                                                    <span className="font-mono text-muted-foreground">${Number(p.defaultPrice)}</span>
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                        <div className="p-2 border-t border-border">
+                                                            <Button variant="ghost" className="w-full h-8 text-[9px] font-black uppercase tracking-widest" onClick={() => setIsCreatingProduct(true)}>
+                                                                <Plus className="mr-2 h-3.5 w-3.5" /> New Product
+                                                            </Button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <ScrollArea className="flex-1">
+                                    <div className="p-6">
+                                        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+                                            <Table>
+                                                <TableHeader className="bg-muted/50 border-b border-border">
+                                                    <TableRow className="hover:bg-transparent border-none">
+                                                        <TableHead className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Component</TableHead>
+                                                        <TableHead className="w-[120px] px-3 py-2 text-center text-[9px] font-black uppercase tracking-widest text-muted-foreground">Unit Val</TableHead>
+                                                        <TableHead className="w-[100px] px-3 py-2 text-center text-[9px] font-black uppercase tracking-widest text-muted-foreground">Qty</TableHead>
+                                                        <TableHead className="text-right w-[120px] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Aggregate</TableHead>
+                                                        <TableHead className="w-[50px] px-3 py-2"></TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {deal.products.map((dp) => (
+                                                        <TableRow key={dp.id} className="hover:bg-muted/30 border-b border-border transition-colors">
+                                                            <TableCell className="px-3 py-2">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-xs font-bold text-foreground">{dp.product.name}</span>
+                                                                    <span className="text-[8px] font-mono text-muted-foreground uppercase mt-0.5">{dp.product.sku || 'NOC_SKU'}</span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="px-3 py-2">
+                                                                <div className="flex items-center justify-center gap-1.5">
+                                                                    <span className="text-[9px] font-black text-muted-foreground">$</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={Number(dp.priceAtSale)}
+                                                                        onChange={(e) => handleUpdateProductPrice(dp.id, Number(e.target.value))}
+                                                                        className="h-6 w-16 text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-[10px] text-foreground rounded-md p-0"
+                                                                    />
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="px-3 py-2">
+                                                                <Input
+                                                                    type="number"
+                                                                    value={dp.quantity}
+                                                                    onChange={(e) => handleUpdateProductQuantity(dp.id, Number(e.target.value))}
+                                                                    className="h-6 w-12 mx-auto text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-[10px] text-foreground rounded-md p-0"
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="text-right px-3 py-2 font-black font-mono text-foreground text-xs">
+                                                                ${(Number(dp.priceAtSale) * dp.quantity).toLocaleString()}
+                                                            </TableCell>
+                                                            <TableCell className="px-3 py-2">
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-500" onClick={() => handleRemoveProduct(dp.id)}>
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        )}
+
+                        {/* DOCUMENTS TAB */}
+                        {activeTab === 'documents' && (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-10 opacity-50">
+                                <div className="h-20 w-20 rounded-2xl bg-muted border border-border flex items-center justify-center mb-6">
+                                    <Layers className="h-10 w-10 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Document Storage Offline</h3>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-2 max-w-[300px]">
+                                    This module is currently inactive pending system upgrade cycle.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </SheetContent>

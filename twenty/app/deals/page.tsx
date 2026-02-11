@@ -43,9 +43,9 @@ export default async function DealsPage({
   }));
 
   return (
-    <div className="h-full flex flex-col space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Deals Board</h1>
+    <div className="h-full flex flex-col space-y-1">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-lg font-black tracking-tight uppercase text-muted-foreground">Deals Board</h1>
       </div>
       <div className="flex-1 h-0"> {/* height 0 to let flex take over */}
         <KanbanBoard

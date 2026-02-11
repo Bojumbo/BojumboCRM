@@ -140,11 +140,11 @@ export default function ProductsPage() {
                 <Table>
                     <TableHeader className="bg-muted/50 border-b border-border">
                         <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Asset Designation</TableHead>
-                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Node SKU</TableHead>
-                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Unit Val</TableHead>
-                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description Protocol</TableHead>
-                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Sequence</TableHead>
+                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Asset Designation</TableHead>
+                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Node SKU</TableHead>
+                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Unit Val</TableHead>
+                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description Protocol</TableHead>
+                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Sequence</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -172,45 +172,45 @@ export default function ProductsPage() {
                                     className="group hover:bg-muted/50 border-b border-border cursor-pointer transition-all isolate"
                                     onClick={() => openDetails(p.id)}
                                 >
-                                    <TableCell className="px-8 py-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 flex-shrink-0 bg-muted rounded-lg flex items-center justify-center border border-border group-hover:border-blue-500/50 transition-colors">
-                                                <Package className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                                    <TableCell className="px-2 py-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-6 w-6 flex-shrink-0 bg-muted rounded-md flex items-center justify-center border border-border group-hover:border-blue-500/50 transition-colors">
+                                                <Package className="h-3 w-3 text-muted-foreground group-hover:text-blue-500 transition-colors" />
                                             </div>
                                             <div className="flex flex-col min-w-0">
-                                                <span className="font-bold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors truncate">{p.name}</span>
-                                                <span className="text-[9px] uppercase font-black tracking-tighter text-muted-foreground transition-colors">TYPE: {p.sku ? 'QUANTIFIED' : 'UNSPECIFIED'}</span>
+                                                <span className="font-bold text-[10px] text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors truncate">{p.name}</span>
+                                                <span className="text-[8px] uppercase font-black tracking-tighter text-muted-foreground transition-colors">TYPE: {p.sku ? 'QUANTIFIED' : 'UNSPECIFIED'}</span>
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="px-8 py-6">
-                                        <code className="bg-muted px-2 py-0.5 rounded border border-border text-[10px] font-mono text-muted-foreground">
+                                    <TableCell className="px-2 py-1.5">
+                                        <code className="bg-muted px-1 py-0.5 rounded border border-border text-[9px] font-mono text-muted-foreground">
                                             {p.sku || 'NOC_SKU'}
                                         </code>
                                     </TableCell>
-                                    <TableCell className="px-8 py-6 text-center">
-                                        <div className="inline-flex items-center gap-1 bg-muted px-3 py-1 rounded-md border border-border shadow-inner">
-                                            <DollarSign className="h-3 w-3 text-emerald-600 dark:text-emerald-500" />
-                                            <span className="text-sm font-black text-foreground font-mono">{Number(p.defaultPrice).toLocaleString()}</span>
+                                    <TableCell className="px-2 py-1.5 text-center">
+                                        <div className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded-md border border-border shadow-inner">
+                                            <DollarSign className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-500" />
+                                            <span className="text-[10px] font-black text-foreground font-mono">{Number(p.defaultPrice).toLocaleString()}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="px-8 py-6">
-                                        <p className="text-[10px] font-bold text-muted-foreground line-clamp-1 max-w-[280px] transition-colors">
+                                    <TableCell className="px-2 py-1.5">
+                                        <p className="text-[9px] font-bold text-muted-foreground line-clamp-1 max-w-[280px] transition-colors">
                                             {p.description || 'PROTO_STUB: No specialized logic defined for this node.'}
                                         </p>
                                     </TableCell>
-                                    <TableCell className="px-8 py-6 text-right">
-                                        <div className="flex items-center justify-end gap-3 isolate">
+                                    <TableCell className="px-2 py-1.5 text-right">
+                                        <div className="flex items-center justify-end gap-1 isolate">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-500 border border-transparent hover:border-red-500/50"
+                                                className="h-6 w-6 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20"
                                                 onClick={(e) => handleDeleteProduct(p.id, e)}
                                             >
-                                                <Trash2 className="h-3.5 w-3.5" />
+                                                <Trash2 className="h-2.5 w-2.5" />
                                             </Button>
-                                            <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center border border-border text-muted-foreground group-hover:text-blue-500 transition-all group-hover:translate-x-1">
-                                                <ArrowRight className="h-3.5 w-3.5" />
+                                            <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center border border-border text-muted-foreground group-hover:text-blue-500 transition-all group-hover:translate-x-1">
+                                                <ArrowRight className="h-2.5 w-2.5" />
                                             </div>
                                         </div>
                                     </TableCell>
@@ -229,50 +229,50 @@ export default function ProductsPage() {
             />
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-xl border-border bg-card shadow-2xl">
+                <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden rounded-lg border-border bg-card shadow-2xl">
                     <form onSubmit={handleCreateProduct}>
-                        <div className="p-8 border-b border-border bg-muted/30">
-                            <h2 className="text-xl font-black text-foreground leading-none">Initialize Asset Node</h2>
-                            <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mt-2">Matrix Entry Registration</p>
+                        <div className="p-3 border-b border-border bg-muted/30">
+                            <h2 className="text-sm font-black text-foreground leading-none">Initialize Asset Node</h2>
+                            <p className="text-[8px] uppercase font-bold tracking-widest text-muted-foreground mt-1">Matrix Entry Registration</p>
                         </div>
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-2.5">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Asset Designation</label>
+                        <div className="p-3 space-y-3">
+                            <div className="space-y-1.5">
+                                <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Asset Designation</label>
                                 <Input
                                     required
                                     placeholder="Enter logical label..."
                                     value={newProduct.name}
                                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                                    className="h-11 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-bold"
+                                    className="h-8 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-xs font-bold"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-5">
-                                <div className="space-y-2.5">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Valuation ($)</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Valuation ($)</label>
                                     <Input
                                         required
                                         type="number"
                                         placeholder="0.00"
                                         value={newProduct.defaultPrice}
                                         onChange={(e) => setNewProduct({ ...newProduct, defaultPrice: e.target.value })}
-                                        className="h-11 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-mono"
+                                        className="h-8 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-xs font-mono"
                                     />
                                 </div>
-                                <div className="space-y-2.5">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Node SKU</label>
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Node SKU</label>
                                     <Input
                                         placeholder="SEQ-X-001"
                                         value={newProduct.sku}
                                         onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                                        className="h-11 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-mono"
+                                        className="h-8 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-xs font-mono"
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div className="px-8 py-6 bg-muted/30 flex items-center justify-between border-t border-border">
-                            <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors px-0 font-bold text-xs">DISCARD</Button>
-                            <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 rounded-md tracking-tight h-11 text-xs" disabled={creating}>
-                                {creating ? 'PURGING BUFFER...' : 'EXECUTE INJECTION'}
+                        <div className="px-3 py-3 bg-muted/30 flex items-center justify-between border-t border-border">
+                            <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors px-0 font-bold text-[10px]">DISCARD</Button>
+                            <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-black px-4 rounded-md tracking-tight h-8 text-[10px]" disabled={creating}>
+                                {creating ? 'PURGING...' : 'EXECUTE INJECTION'}
                             </Button>
                         </div>
                     </form>

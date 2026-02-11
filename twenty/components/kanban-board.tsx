@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
     DndContext,
     DragOverlay,
-    closestCorners,
+    rectIntersection,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -34,7 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, GripVertical, Building2, User } from 'lucide-react';
+import { Plus, Trash2, Building2, User } from 'lucide-react';
 import { Pipeline, Stage } from '@prisma/client';
 import { updateDealStage, createDeal, deleteDeal } from '@/app/actions/deal';
 import { useToast } from '@/hooks/use-toast';
@@ -75,6 +75,62 @@ const dropAnimation: DropAnimation = {
     }),
 };
 
+function DealCardItem({ deal, onDelete, onClick }: { deal: SafeDeal; onDelete?: (id: string) => void; onClick?: () => void }) {
+    return (
+        <Card className="bg-card border-border hover:border-blue-500/50 transition-all duration-300 shadow-sm overflow-hidden group-hover:shadow-md h-full">
+            <div className="p-2 space-y-2 h-full flex flex-col justify-between">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-start justify-between gap-1.5">
+                        <div className="flex-1 min-w-0">
+                            <h4
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClick?.();
+                                }}
+                                className="font-bold text-[10px] text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors leading-tight line-clamp-2 select-none cursor-pointer"
+                            >
+                                {deal.title}
+                            </h4>
+                        </div>
+                        {onDelete && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 -mr-1 -mt-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(deal.id);
+                                }}
+                            >
+                                <Trash2 className="h-2.5 w-2.5" />
+                            </Button>
+                        )}
+                    </div>
+
+                    {deal.counterparty && (
+                        <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border border-border w-fit">
+                            {deal.counterparty.type === 'COMPANY' ? <Building2 className="h-2.5 w-2.5 text-blue-500" /> : <User className="h-2.5 w-2.5 text-amber-500" />}
+                            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground truncate max-w-[120px]">
+                                {deal.counterparty.name}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 mt-auto">
+                    <Badge variant="outline" className="bg-muted/30 border-border text-foreground font-mono text-[10px] py-0 px-2 h-6 font-black">
+                        ${deal.amount.toLocaleString()}
+                    </Badge>
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                        {new Date(deal.updatedAt).toLocaleDateString()}
+                    </span>
+                </div>
+            </div>
+        </Card>
+    );
+}
+
 function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelete: (id: string) => void; onClick: () => void }) {
     const {
         setNodeRef,
@@ -111,59 +167,10 @@ function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelet
             ref={setNodeRef}
             style={style}
             {...attributes}
-            {...listeners} // Перетягування за всю картку
+            {...listeners}
             className="group relative mb-3 cursor-grab active:cursor-grabbing"
         >
-            <Card className="bg-card border-border hover:border-blue-500/50 transition-all duration-300 shadow-sm dark:shadow-lg overflow-hidden group-hover:shadow-md dark:group-hover:shadow-xl">
-                <div className="p-4 space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="mt-0.5 opacity-50">
-                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            {/* Тільки клік по заголовку відкриває картку */}
-                            <h4
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onClick();
-                                }}
-                                className="font-bold text-sm text-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer transition-colors leading-tight line-clamp-2 select-none"
-                            >
-                                {deal.title}
-                            </h4>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 -mr-1 -mt-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(deal.id);
-                            }}
-                        >
-                            <Trash2 className="h-3 w-3" />
-                        </Button>
-                    </div>
-
-                    {deal.counterparty && (
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border border-border w-fit">
-                            {deal.counterparty.type === 'COMPANY' ? <Building2 className="h-2.5 w-2.5 text-blue-500" /> : <User className="h-2.5 w-2.5 text-amber-500" />}
-                            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground truncate max-w-[120px]">
-                                {deal.counterparty.name}
-                            </span>
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-2">
-                        <Badge variant="outline" className="bg-muted/30 border-border text-foreground font-mono text-[10px] py-0 px-2 h-6 font-black">
-                            ${deal.amount.toLocaleString()}
-                        </Badge>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                            {new Date(deal.updatedAt).toLocaleDateString()}
-                        </span>
-                    </div>
-                </div>
-            </Card>
+            <DealCardItem deal={deal} onDelete={onDelete} onClick={onClick} />
         </div>
     );
 }
@@ -190,11 +197,11 @@ function KanbanColumn({
     });
 
     return (
-        <div className="flex flex-col h-full min-w-[320px] w-[320px] px-4 border-r border-border/30 dark:border-zinc-800/50 last:border-none">
-            <div className="px-1 py-4 flex items-center justify-between group/header">
-                <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color || '#3b82f6' }} />
-                    <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground group-hover/header:text-foreground transition-colors">
+        <div className="flex flex-col h-full min-w-[240px] w-[240px]">
+            <div className="px-1 py-1.5 flex items-center justify-between group/header">
+                <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: stage.color || '#3b82f6' }} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground group-hover/header:text-foreground transition-colors">
                         {stage.name}
                     </span>
                     <Badge variant="outline" className="text-[10px] font-black border-border bg-muted/50 text-muted-foreground group-hover/header:text-blue-500 transition-colors">
@@ -309,7 +316,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
 
         if (finalStageId !== initialDeals.find(d => d.id === activeId)?.stageId) {
             await updateDealStage(activeId, finalStageId);
-            toast({ title: 'Logic Sync: Sequence Adjusted' });
+            toast({ title: 'Оновлено та синхронізовано' });
         }
     };
 
@@ -356,19 +363,19 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
     };
 
     return (
-        <div className="h-full flex flex-col gap-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-6">
-                    <div className="h-10 px-4 bg-muted/50 dark:bg-zinc-950 border border-border rounded-md flex items-center gap-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Pipeline</span>
-                        <div className="h-4 w-[1px] bg-border" />
+        <div className="h-full flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <div className="h-8 px-2 bg-muted border border-border rounded-md flex items-center gap-2">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Active Pipeline</span>
+                        <div className="h-2.5 w-[1px] bg-border" />
                         <Select value={currentPipelineId} onValueChange={handlePipelineChange}>
-                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-sm font-bold text-foreground focus:ring-0">
+                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-xs font-bold text-foreground focus:ring-0 w-[140px]">
                                 <SelectValue placeholder="Pipeline Selection" />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border-border text-popover-foreground">
                                 {pipelines.map((p) => (
-                                    <SelectItem key={p.id} value={p.id} className="focus:bg-accent rounded-md cursor-pointer">
+                                    <SelectItem key={p.id} value={p.id} className="focus:bg-accent focus:text-accent-foreground rounded-md cursor-pointer text-xs font-medium">
                                         {p.name}
                                     </SelectItem>
                                 ))}
@@ -387,12 +394,12 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
             <div className="flex-1 overflow-x-auto overflow-y-hidden max-w-full min-h-0 scrollbar-hide">
                 <DndContext
                     sensors={sensors}
-                    collisionDetection={closestCorners}
+                    collisionDetection={rectIntersection}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
                     onDragEnd={onDragEnd}
                 >
-                    <div className="flex h-full gap-0 pb-10 w-max">
+                    <div className="flex h-full gap-3 pb-3 w-max">
                         {stages.map((stage: Stage) => (
                             <KanbanColumn
                                 key={stage.id}
@@ -406,8 +413,8 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                     </div>
                     <DragOverlay dropAnimation={dropAnimation}>
                         {activeDragItem ? (
-                            <div className="w-[320px] rotate-2 opacity-80 scale-105 transition-transform">
-                                <SortableDealCard deal={activeDragItem} onDelete={() => { }} onClick={() => { }} />
+                            <div className="w-[240px] rotate-2 opacity-90 shadow-xl cursor-grabbing rounded-xl bg-background border border-blue-500/50">
+                                <DealCardItem deal={activeDragItem} />
                             </div>
                         ) : null}
                     </DragOverlay>
@@ -422,35 +429,35 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
             />
 
             <Dialog open={isNewDealOpen} onOpenChange={setIsNewDealOpen}>
-                <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-xl border-border bg-background shadow-2xl">
-                    <div className="p-8 border-b border-border bg-gradient-to-b from-muted/30 to-transparent">
-                        <h2 className="text-xl font-black text-foreground leading-none">Initialize Workframe</h2>
-                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mt-2">Logic Layer Activation</p>
+                <DialogContent className="sm:max-w-[380px] p-0 overflow-hidden rounded-lg border-border bg-card shadow-2xl">
+                    <div className="p-3 border-b border-border bg-muted/30">
+                        <h2 className="text-sm font-black text-foreground leading-none">Initialize Workframe</h2>
+                        <p className="text-[8px] uppercase font-bold tracking-widest text-muted-foreground mt-1">Logic Layer Activation</p>
                     </div>
-                    <div className="p-8 space-y-6">
-                        <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Title Designation</label>
+                    <div className="p-3 space-y-3">
+                        <div className="space-y-1.5">
+                            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Title Designation</label>
                             <Input
                                 placeholder="Core operational unit title"
                                 value={newDealTitle}
                                 onChange={(e) => setNewDealTitle(e.target.value)}
-                                className="h-11 bg-muted/20 border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-bold text-foreground"
+                                className="h-8 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-xs font-bold placeholder:font-normal"
                             />
                         </div>
-                        <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Numeric Value ($)</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Numeric Value ($)</label>
                             <Input
                                 type="number"
                                 placeholder="0.00"
                                 value={newDealAmount}
                                 onChange={(e) => setNewDealAmount(e.target.value)}
-                                className="h-11 bg-muted/20 border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-mono text-foreground"
+                                className="h-8 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-xs font-mono"
                             />
                         </div>
                     </div>
-                    <div className="px-8 py-6 bg-muted/10 flex items-center justify-between border-t border-border">
-                        <Button type="button" variant="ghost" onClick={() => setIsNewDealOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors px-0 font-bold">DISCARD</Button>
-                        <Button onClick={handleCreateDeal} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 rounded-md tracking-tight h-11">
+                    <div className="px-3 py-3 bg-muted/30 flex items-center justify-between border-t border-border">
+                        <Button type="button" variant="ghost" onClick={() => setIsNewDealOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors px-0 font-bold text-[10px] h-7">DISCARD</Button>
+                        <Button onClick={handleCreateDeal} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-4 rounded-md tracking-tight h-8 text-[10px]">
                             EXECUTE SEQUENCE
                         </Button>
                     </div>

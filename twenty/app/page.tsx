@@ -49,13 +49,13 @@ export default function Home() {
           />
         </div>
 
-        <div className="flex items-center justify-center gap-6 pt-8 animate-in fade-in zoom-in-95 duration-1000 delay-500">
-          <Button asChild className="h-14 px-10 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-[0.2em] rounded-md shadow-2xl shadow-blue-500/20 group">
-            <Link href="/deals" className="flex items-center gap-3">
-              Initialize Terminal <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+        <div className="flex items-center justify-center gap-3 pt-3 animate-in fade-in zoom-in-95 duration-1000 delay-500">
+          <Button asChild className="h-9 px-6 bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-md shadow-md shadow-blue-500/10 group">
+            <Link href="/deals" className="flex items-center gap-2">
+              Initialize Terminal <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </Button>
-          <div className="h-10 w-[1px] bg-border" />
+          <div className="h-6 w-[1px] bg-border" />
           <div className="flex flex-col items-start">
             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">System Status</span>
             <div className="flex items-center gap-2">
@@ -78,17 +78,17 @@ export default function Home() {
 
 function DashboardModule({ icon, label, title, desc, href }: { icon: React.ReactNode, label: string, title: string, desc: string, href: string }) {
   return (
-    <Link href={href} className="group relative block p-8 bg-card border border-border rounded-2xl hover:border-blue-500/50 hover:bg-muted/30 transition-all duration-300 shadow-lg overflow-hidden">
-      <div className="absolute -top-4 -right-4 h-24 w-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
+    <Link href={href} className="group relative block p-3 bg-card border border-border rounded-lg hover:border-blue-500/50 hover:bg-muted/30 transition-all duration-300 shadow-sm overflow-hidden">
+      <div className="absolute -top-3 -right-3 h-16 w-16 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-colors" />
 
-      <div className="relative space-y-4 text-center">
-        <div className="h-12 w-12 rounded-xl bg-muted border border-border flex items-center justify-center mx-auto text-muted-foreground group-hover:text-blue-500 group-hover:border-blue-500/30 transition-all">
+      <div className="relative space-y-2 text-center">
+        <div className="h-8 w-8 rounded-md bg-muted border border-border flex items-center justify-center mx-auto text-muted-foreground group-hover:text-blue-500 group-hover:border-blue-500/30 transition-all">
           {icon}
         </div>
-        <div className="space-y-1">
-          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] group-hover:text-blue-500/70 transition-colors">{label}</span>
-          <h3 className="text-xl font-black text-foreground">{title}</h3>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{desc}</p>
+        <div className="space-y-0.5">
+          <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.1em] group-hover:text-blue-500/70 transition-colors">{label}</span>
+          <h3 className="text-sm font-black text-foreground">{title}</h3>
+          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">{desc}</p>
         </div>
       </div>
 
