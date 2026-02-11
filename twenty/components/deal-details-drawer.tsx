@@ -24,6 +24,13 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     getDealDetails,
     updateDeal,
     addComment,
@@ -32,9 +39,10 @@ import {
     removeDealProduct,
 } from "@/app/actions/deal";
 import { getProducts, createProduct } from "@/app/actions/product";
-import { Deal, Comment, DealProduct, Product } from "@prisma/client";
+import { getCounterparties } from "@/app/actions/counterparty";
+import { Deal, Comment, DealProduct, Product, Counterparty } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, MessageSquare, Package, X } from "lucide-react";
+import { Plus, Trash2, Loader2, MessageSquare, Package, X, User, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -48,6 +56,7 @@ type SerializedDeal = Omit<Deal, 'amount'> & {
     amount: string | number;
     comments: Comment[];
     products: SerializedDealProduct[];
+    counterparty?: Counterparty | null;
 };
 
 interface DealDetailsDrawerProps {
@@ -61,6 +70,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
     const [deal, setDeal] = useState<SerializedDeal | null>(null);
     const [loading, setLoading] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
+    const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
     const [newComment, setNewComment] = useState("");
     const { toast } = useToast();
 
@@ -79,24 +89,38 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
         setLoading(false);
     }, [dealId]);
 
-    const fetchProducts = async () => {
-        const data = await getProducts();
-        setProducts(data as unknown as Product[]);
+    const fetchData = async () => {
+        const [prods, counters] = await Promise.all([
+            getProducts(),
+            getCounterparties()
+        ]);
+        setProducts(prods as unknown as Product[]);
+        setCounterparties(counters as unknown as Counterparty[]);
     };
 
     useEffect(() => {
         if (open && dealId) {
             fetchDeal();
-            fetchProducts();
+            fetchData();
         }
     }, [open, dealId, fetchDeal]);
 
-    const handleUpdateDeal = async (field: keyof Deal, value: string | number) => {
+    const handleUpdateDeal = async (field: keyof Deal | 'counterpartyId', value: string | number | null) => {
         if (!deal) return;
         const res = await updateDeal(deal.id, { [field]: value });
         if (res.success) {
-            setDeal({ ...deal, [field]: value } as SerializedDeal);
+            if (field === 'counterpartyId') {
+                fetchDeal(); // Refetch to get populated counterparty
+            } else {
+                setDeal({ ...deal, [field]: value } as SerializedDeal);
+            }
             if (onUpdate) onUpdate();
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: res.error
+            });
         }
     };
 
@@ -155,7 +179,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
             handleAddProductToDeal(res.data as unknown as Product);
             setIsCreatingProduct(false);
             setNewProductData({ name: "", defaultPrice: "", sku: "" });
-            fetchProducts();
+            fetchData();
         }
     };
 
@@ -187,6 +211,32 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                 className="text-3xl font-bold bg-transparent border-transparent hover:border-input focus:bg-background h-auto px-1 py-0 mb-1"
                             />
                         </DialogHeader>
+
+                        {/* Counterparty Selector */}
+                        <div className="flex items-center gap-4 py-2 isolate">
+                            <div className="flex-1 space-y-1">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Client / Counterparty</label>
+                                <Select
+                                    value={deal.counterpartyId || "none"}
+                                    onValueChange={(val) => handleUpdateDeal('counterpartyId', val === "none" ? null : val)}
+                                >
+                                    <SelectTrigger className="h-10 bg-secondary/30 border-none rounded-xl">
+                                        <SelectValue placeholder="Select counterparty" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">No counterparty</SelectItem>
+                                        {counterparties.map(c => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                <div className="flex items-center gap-2">
+                                                    {c.type === 'COMPANY' ? <Building2 className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                                    {c.name}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
 
                         {/* Description */}
                         <div className="space-y-2">

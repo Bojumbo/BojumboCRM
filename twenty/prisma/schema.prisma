@@ -28,17 +28,38 @@ model Stage {
 }
 
 model Deal {
-  id           String        @id @default(cuid())
-  title        String
-  description  String?
-  amount       Decimal       @default(0)
-  status       String        @default("OPEN") // STATUS: OPEN, WON, LOST
-  stageId      String
-  stage        Stage         @relation(fields: [stageId], references: [id])
-  products     DealProduct[]
-  comments     Comment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  title          String
+  description    String?
+  amount         Decimal       @default(0)
+  status         String        @default("OPEN") // STATUS: OPEN, WON, LOST
+  stageId        String
+  stage          Stage         @relation(fields: [stageId], references: [id])
+  counterpartyId String?
+  counterparty   Counterparty? @relation(fields: [counterpartyId], references: [id])
+  products       DealProduct[]
+  comments       Comment[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+enum CounterpartyType {
+  INDIVIDUAL
+  COMPANY
+}
+
+model Counterparty {
+  id            String           @id @default(cuid())
+  type          CounterpartyType @default(INDIVIDUAL)
+  name          String           // Full name or Company name
+  taxId         String?          // EDRPOU or IPN
+  email         String?
+  phone         String?
+  address       String?
+  contactPerson String?          // For companies
+  deals         Deal[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 model Product {

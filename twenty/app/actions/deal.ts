@@ -31,6 +31,7 @@ export async function getDealDetails(id: string) {
             comments: {
                 orderBy: { createdAt: 'desc' },
             },
+            counterparty: true,
             products: {
                 include: {
                     product: true,
@@ -40,7 +41,7 @@ export async function getDealDetails(id: string) {
     });
 }
 
-export async function updateDeal(id: string, data: { title?: string; description?: string; amount?: number }) {
+export async function updateDeal(id: string, data: { title?: string; description?: string; amount?: number; counterpartyId?: string | null }) {
     try {
         const deal = await prisma.deal.update({
             where: { id },
@@ -48,7 +49,8 @@ export async function updateDeal(id: string, data: { title?: string; description
         });
         revalidatePath('/deals');
         return { success: true, data: JSON.parse(JSON.stringify(deal)) };
-    } catch {
+    } catch (e) {
+        console.error(e);
         return { success: false, error: 'Failed to update deal' };
     }
 }

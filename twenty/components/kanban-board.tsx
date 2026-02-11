@@ -54,6 +54,11 @@ export type SafeDeal = {
     amount: number;
     stageId: string;
     status: string;
+    counterpartyId?: string | null;
+    counterparty?: {
+        name: string;
+        type: string;
+    } | null;
     createdAt: string;
     updatedAt: string;
 };

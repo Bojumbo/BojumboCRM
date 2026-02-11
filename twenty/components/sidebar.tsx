@@ -27,9 +27,14 @@ const sidebarItems = [
         icon: LayoutDashboard,
     },
     {
-        title: 'Deals',
+        title: 'Workflows',
         href: '/deals',
         icon: Briefcase,
+    },
+    {
+        title: 'Counterparties',
+        href: '/counterparties',
+        icon: Users,
     },
     {
         title: 'Products',
