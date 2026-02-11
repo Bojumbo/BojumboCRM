@@ -93,7 +93,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
 
     const [managerSearchTerm, setManagerSearchTerm] = useState("");
 
-    const [activeTab, setActiveTab] = useState<'comments' | 'products' | 'documents'>('comments');
+    const [activeTab, setActiveTab] = useState<'comments' | 'products'>('comments');
 
     const [isCreatingProduct, setIsCreatingProduct] = useState(false);
     const [newProductData, setNewProductData] = useState({
@@ -470,20 +470,6 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                     Inventory
                                 </div>
                             </button>
-                            <button
-                                onClick={() => setActiveTab('documents')}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all",
-                                    activeTab === 'documents'
-                                        ? "bg-background text-foreground shadow-sm border border-border/50"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                )}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <FileText className="h-3.5 w-3.5" />
-                                    Documents
-                                </div>
-                            </button>
                         </div>
 
                         <Button
@@ -684,19 +670,6 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                         </div>
                                     </div>
                                 </ScrollArea>
-                            </div>
-                        )}
-
-                        {/* DOCUMENTS TAB */}
-                        {activeTab === 'documents' && (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-10 opacity-50">
-                                <div className="h-20 w-20 rounded-2xl bg-muted border border-border flex items-center justify-center mb-6">
-                                    <Layers className="h-10 w-10 text-muted-foreground" />
-                                </div>
-                                <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Document Storage Offline</h3>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase mt-2 max-w-[300px]">
-                                    This module is currently inactive pending system upgrade cycle.
-                                </p>
                             </div>
                         )}
                     </div>
