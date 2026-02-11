@@ -108,7 +108,7 @@ function PipelineCard({ pipeline }: PipelineCardProps) {
         const { active, over } = event;
 
         if (over && active.id !== over.id) {
-            setStages((items) => {
+            setStages((items: PrismaStage[]) => {
                 const oldIndex = items.findIndex((item) => item.id === active.id);
                 const newIndex = items.findIndex((item) => item.id === over.id);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
@@ -158,7 +158,7 @@ function PipelineCard({ pipeline }: PipelineCardProps) {
                             items={stages}
                             strategy={verticalListSortingStrategy}
                         >
-                            {stages.map((stage) => (
+                            {stages.map((stage: PrismaStage) => (
                                 <SortableStage key={stage.id} stage={stage} onUpdate={() => { }} />
                             ))}
                         </SortableContext>
@@ -189,7 +189,7 @@ export default function PipelineList({ pipelines }: { pipelines: PipelineWithSta
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Pipeline Settings</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Workflows & Funnels</h1>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                         <Button>

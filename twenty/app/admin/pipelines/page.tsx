@@ -1,7 +1,7 @@
 import { getPipelines } from '@/app/actions/pipeline';
 import PipelineList from '@/components/pipeline-list';
 
-export default async function PipelinesPage() {
+export default async function AdminPipelinesPage() {
     const pipelines = await getPipelines();
 
     return (

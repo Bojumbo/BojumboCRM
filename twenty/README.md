@@ -1,4 +1,4 @@
-# Twenty CRM - Посібник із запуску
+# BojumboCRM - Посібник із запуску
 
 Короткий посібник для швидкого розгортання та запуску системи локально.
 
@@ -22,7 +22,7 @@ npm install
 ### 3. Налаштування середовища (Environment)
 Переконайтеся, що файл `.env` містить правильні параметри:
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/twenty_crm?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/bojumbocrm_db?schema=public"
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"
 ```

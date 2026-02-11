@@ -330,8 +330,8 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                 amount: Number(res.data.amount),
                 stageId: res.data.stageId,
                 status: res.data.status,
-                createdAt: res.data.createdAt.toISOString(),
-                updatedAt: res.data.updatedAt.toISOString()
+                createdAt: res.data.createdAt,
+                updatedAt: res.data.updatedAt
             };
             setDeals([...deals, newDeal]);
         } else {

@@ -6,11 +6,9 @@ import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import {
     LayoutDashboard,
-    Settings,
     Users,
     Briefcase,
     FileText,
-    ShieldCheck,
     Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,11 +46,6 @@ const sidebarItems = [
         href: '/documents',
         icon: FileText,
     },
-    {
-        title: 'Settings',
-        href: '/settings/pipelines',
-        icon: Settings,
-    },
 ];
 
 type SidebarProps = React.HTMLAttributes<HTMLDivElement>;
@@ -68,7 +61,7 @@ export function Sidebar({ className }: SidebarProps) {
             <div className="space-y-4 py-4">
                 <div className="px-3 py-2">
                     <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-                        Twenty CRM
+                        BojumboCRM
                     </h2>
                     <div className="space-y-1">
                         {sidebarItems.map((item) => (
@@ -86,16 +79,31 @@ export function Sidebar({ className }: SidebarProps) {
                         ))}
 
                         {isAdmin && (
-                            <Button
-                                variant={pathname === '/admin/users' ? 'secondary' : 'ghost'}
-                                className="w-full justify-start text-amber-500 hover:text-amber-600"
-                                asChild
-                            >
-                                <Link href="/admin/users">
-                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                            <>
+                                <div className="mt-4 mb-2 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                                     Admin Panel
-                                </Link>
-                            </Button>
+                                </div>
+                                <Button
+                                    variant={pathname === '/admin/users' ? 'secondary' : 'ghost'}
+                                    className="w-full justify-start text-amber-500 hover:text-amber-600"
+                                    asChild
+                                >
+                                    <Link href="/admin/users">
+                                        <Users className="mr-2 h-4 w-4" />
+                                        User Management
+                                    </Link>
+                                </Button>
+                                <Button
+                                    variant={pathname === '/admin/pipelines' ? 'secondary' : 'ghost'}
+                                    className="w-full justify-start text-amber-500 hover:text-amber-600"
+                                    asChild
+                                >
+                                    <Link href="/admin/pipelines">
+                                        <Briefcase className="mr-2 h-4 w-4" />
+                                        Workflows & Funnels
+                                    </Link>
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>

@@ -8,7 +8,7 @@ import LayoutContent from '@/components/layout-content';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Twenty CRM',
+  title: 'BojumboCRM',
   description: 'A minimalist CRM for modern teams',
 };
 
