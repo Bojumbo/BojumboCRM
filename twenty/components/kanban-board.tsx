@@ -34,19 +34,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, MoreHorizontal, GripVertical, Building2, User } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Building2, User } from 'lucide-react';
 import { Pipeline, Stage } from '@prisma/client';
 import { updateDealStage, createDeal, deleteDeal } from '@/app/actions/deal';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
     DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
 } from '@/components/ui/dialog';
 import { DealDetailsDrawer } from './deal-details-drawer';
-import { cn } from '@/lib/utils';
 
 export type SafeDeal = {
     id: string;
@@ -114,20 +110,27 @@ function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelet
         <div
             ref={setNodeRef}
             style={style}
-            className="group relative mb-3 cursor-pointer"
-            onClick={(e) => {
-                if ((e.target as HTMLElement).closest('button')) return;
-                onClick();
-            }}
+            {...attributes}
+            {...listeners} // Перетягування за всю картку
+            className="group relative mb-3 cursor-grab active:cursor-grabbing"
         >
-            <Card className="bg-card border-border hover:border-blue-500/50 transition-all duration-300 shadow-lg overflow-hidden group-hover:shadow-xl">
+            <Card className="bg-card border-border hover:border-blue-500/50 transition-all duration-300 shadow-sm dark:shadow-lg overflow-hidden group-hover:shadow-md dark:group-hover:shadow-xl">
                 <div className="p-4 space-y-4">
                     <div className="flex items-start justify-between gap-3">
-                        <div {...attributes} {...listeners} className="mt-0.5 cursor-grab active:cursor-grabbing">
-                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground/70 transition-colors" />
+                        <div className="mt-0.5 opacity-50">
+                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors leading-tight line-clamp-2">{deal.title}</h4>
+                            {/* Тільки клік по заголовку відкриває картку */}
+                            <h4
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClick();
+                                }}
+                                className="font-bold text-sm text-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer transition-colors leading-tight line-clamp-2 select-none"
+                            >
+                                {deal.title}
+                            </h4>
                         </div>
                         <Button
                             variant="ghost"
@@ -143,7 +146,7 @@ function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelet
                     </div>
 
                     {deal.counterparty && (
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted border border-border w-fit">
+                        <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border border-border w-fit">
                             {deal.counterparty.type === 'COMPANY' ? <Building2 className="h-2.5 w-2.5 text-blue-500" /> : <User className="h-2.5 w-2.5 text-amber-500" />}
                             <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground truncate max-w-[120px]">
                                 {deal.counterparty.name}
@@ -152,7 +155,7 @@ function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelet
                     )}
 
                     <div className="flex items-center justify-between pt-2">
-                        <Badge variant="outline" className="bg-muted border-border text-foreground font-mono text-[10px] py-0 px-2 h-6 font-black">
+                        <Badge variant="outline" className="bg-muted/30 border-border text-foreground font-mono text-[10px] py-0 px-2 h-6 font-black">
                             ${deal.amount.toLocaleString()}
                         </Badge>
                         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
@@ -187,14 +190,14 @@ function KanbanColumn({
     });
 
     return (
-        <div className="flex flex-col h-full min-w-[300px] w-[300px]">
+        <div className="flex flex-col h-full min-w-[320px] w-[320px] px-4 border-r border-border/30 dark:border-zinc-800/50 last:border-none">
             <div className="px-1 py-4 flex items-center justify-between group/header">
                 <div className="flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color || '#3b82f6' }} />
                     <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground group-hover/header:text-foreground transition-colors">
                         {stage.name}
                     </span>
-                    <Badge variant="outline" className="text-[10px] font-black border-border bg-muted text-muted-foreground group-hover/header:text-blue-500 transition-colors">
+                    <Badge variant="outline" className="text-[10px] font-black border-border bg-muted/50 text-muted-foreground group-hover/header:text-blue-500 transition-colors">
                         {deals.length}
                     </Badge>
                 </div>
@@ -235,8 +238,9 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
         setDeals(initialDeals);
     }, [initialDeals]);
 
+    // Activation constraint додано для уникнення конфлікту між кліком та початком тяжіння
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
@@ -355,16 +359,16 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
         <div className="h-full flex flex-col gap-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-6">
-                    <div className="h-10 px-4 bg-zinc-950 border border-zinc-800/80 rounded-md flex items-center gap-3">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Active Pipeline</span>
-                        <div className="h-4 w-[1px] bg-zinc-800" />
+                    <div className="h-10 px-4 bg-muted/50 dark:bg-zinc-950 border border-border rounded-md flex items-center gap-3">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Pipeline</span>
+                        <div className="h-4 w-[1px] bg-border" />
                         <Select value={currentPipelineId} onValueChange={handlePipelineChange}>
-                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-sm font-bold text-zinc-100 focus:ring-0">
+                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-sm font-bold text-foreground focus:ring-0">
                                 <SelectValue placeholder="Pipeline Selection" />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+                            <SelectContent className="bg-popover border-border text-popover-foreground">
                                 {pipelines.map((p) => (
-                                    <SelectItem key={p.id} value={p.id} className="focus:bg-zinc-900 focus:text-white rounded-md cursor-pointer">
+                                    <SelectItem key={p.id} value={p.id} className="focus:bg-accent rounded-md cursor-pointer">
                                         {p.name}
                                     </SelectItem>
                                 ))}
@@ -374,7 +378,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="border-zinc-800 text-zinc-500 font-bold uppercase text-[10px] px-3">
+                    <Badge variant="outline" className="border-border text-muted-foreground font-bold uppercase text-[10px] px-3">
                         Total Value: ${deals.reduce((acc, d) => acc + d.amount, 0).toLocaleString()}
                     </Badge>
                 </div>
@@ -388,7 +392,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                     onDragOver={onDragOver}
                     onDragEnd={onDragEnd}
                 >
-                    <div className="flex h-full gap-8 pb-10 w-max">
+                    <div className="flex h-full gap-0 pb-10 w-max">
                         {stages.map((stage: Stage) => (
                             <KanbanColumn
                                 key={stage.id}
@@ -402,7 +406,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                     </div>
                     <DragOverlay dropAnimation={dropAnimation}>
                         {activeDragItem ? (
-                            <div className="w-[300px] rotate-2 opacity-80 scale-105 transition-transform">
+                            <div className="w-[320px] rotate-2 opacity-80 scale-105 transition-transform">
                                 <SortableDealCard deal={activeDragItem} onDelete={() => { }} onClick={() => { }} />
                             </div>
                         ) : null}
@@ -418,34 +422,34 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
             />
 
             <Dialog open={isNewDealOpen} onOpenChange={setIsNewDealOpen}>
-                <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-xl border-zinc-800 bg-[#0d0d0d] shadow-2xl">
-                    <div className="p-8 border-b border-zinc-800/50 bg-gradient-to-b from-zinc-900/50 to-transparent">
-                        <h2 className="text-xl font-black text-white leading-none">Initialize Workframe</h2>
-                        <p className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 mt-2">Logic Layer Activation</p>
+                <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-xl border-border bg-background shadow-2xl">
+                    <div className="p-8 border-b border-border bg-gradient-to-b from-muted/30 to-transparent">
+                        <h2 className="text-xl font-black text-foreground leading-none">Initialize Workframe</h2>
+                        <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mt-2">Logic Layer Activation</p>
                     </div>
                     <div className="p-8 space-y-6">
                         <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Title Designation</label>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Title Designation</label>
                             <Input
                                 placeholder="Core operational unit title"
                                 value={newDealTitle}
                                 onChange={(e) => setNewDealTitle(e.target.value)}
-                                className="h-11 bg-zinc-900/50 border-zinc-800 rounded-md focus:border-blue-500/50 transition-all text-sm font-bold text-zinc-100"
+                                className="h-11 bg-muted/20 border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-bold text-foreground"
                             />
                         </div>
                         <div className="space-y-2.5">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 ml-1">Numeric Value ($)</label>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Numeric Value ($)</label>
                             <Input
                                 type="number"
                                 placeholder="0.00"
                                 value={newDealAmount}
                                 onChange={(e) => setNewDealAmount(e.target.value)}
-                                className="h-11 bg-zinc-900/50 border-zinc-800 rounded-md focus:border-blue-500/50 transition-all text-sm font-mono text-zinc-100"
+                                className="h-11 bg-muted/20 border-border rounded-md focus:border-blue-500/50 transition-all text-sm font-mono text-foreground"
                             />
                         </div>
                     </div>
-                    <div className="px-8 py-6 bg-zinc-900/30 flex items-center justify-between border-t border-zinc-800/50">
-                        <Button type="button" variant="ghost" onClick={() => setIsNewDealOpen(false)} className="text-zinc-500 hover:text-zinc-300 transition-colors px-0 font-bold">DISCARD</Button>
+                    <div className="px-8 py-6 bg-muted/10 flex items-center justify-between border-t border-border">
+                        <Button type="button" variant="ghost" onClick={() => setIsNewDealOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors px-0 font-bold">DISCARD</Button>
                         <Button onClick={handleCreateDeal} className="bg-blue-600 hover:bg-blue-500 text-white font-black px-8 rounded-md tracking-tight h-11">
                             EXECUTE SEQUENCE
                         </Button>

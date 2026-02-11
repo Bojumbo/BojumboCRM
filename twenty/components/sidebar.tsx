@@ -42,11 +42,6 @@ const sidebarItems = [
         icon: Package,
     },
     {
-        title: 'Contacts',
-        href: '/contacts',
-        icon: Users,
-    },
-    {
         title: 'Documents',
         href: '/documents',
         icon: FileText,
@@ -110,7 +105,7 @@ export function Sidebar({ className }: SidebarProps) {
                                 )}
                             >
                                 <Users className="h-4 w-4 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                                <span className="font-medium tracking-tight">System Users</span>
+                                <span className="font-medium tracking-tight">Користувачі</span>
                             </Link>
                             <Link
                                 href="/admin/pipelines"
@@ -122,7 +117,7 @@ export function Sidebar({ className }: SidebarProps) {
                                 )}
                             >
                                 <Briefcase className="h-4 w-4 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                                <span className="font-medium tracking-tight">Logic & Funnels</span>
+                                <span className="font-medium tracking-tight">Логіка & Воронки</span>
                             </Link>
                         </div>
                     </div>
