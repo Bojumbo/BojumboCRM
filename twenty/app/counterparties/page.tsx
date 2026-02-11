@@ -28,6 +28,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { Plus, Search, Users, Trash2, Loader2, ArrowRight, Building2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
@@ -118,28 +119,33 @@ export default function CounterpartiesPage() {
 
     if (loading && counterparties.length === 0) {
         return (
-            <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex-1 flex items-center justify-center bg-background">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
             </div>
         );
     }
 
     return (
-        <div className="flex-1 flex flex-col space-y-8 h-full max-w-[1400px] mx-auto w-full">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-black flex items-center gap-3">
-                        <Users className="h-10 w-10 text-primary" /> Counterparties
+        <div className="flex-1 flex flex-col space-y-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+                        Counterparties
+                        <Badge variant="outline" className="text-[10px] uppercase font-black px-2 py-0 border-border text-muted-foreground bg-muted">
+                            {counterparties.length} Total
+                        </Badge>
                     </h1>
-                    <p className="text-muted-foreground mt-2">Manage your clients (Individuals and Legal Entities)</p>
+                    <p className="text-sm text-muted-foreground font-medium">System ledger of all associated legal entities and individual clients.</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-4">
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <Search className="h-3.5 w-3.5 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
+                        </div>
                         <Input
-                            placeholder="Search counterparties..."
-                            className="pl-10 w-[300px] h-11 bg-card border-none shadow-sm rounded-xl"
+                            placeholder="Filter ledger..."
+                            className="h-10 w-[280px] bg-background border-border focus:border-blue-500/50 transition-all pl-9 rounded-md text-xs placeholder:text-muted-foreground"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -147,134 +153,139 @@ export default function CounterpartiesPage() {
 
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
-                            <Button className="h-11 px-6 rounded-xl font-bold gap-2">
-                                <Plus className="h-5 w-5" /> New Counterparty
+                            <Button className="h-10 px-6 rounded-md font-bold bg-blue-600 hover:bg-blue-500 text-white border-none shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all gap-2">
+                                <Plus className="h-4 w-4" /> New Entry
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-3xl">
+                        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-xl border-border bg-card shadow-2xl">
                             <form onSubmit={handleCreateCounterparty}>
-                                <DialogHeader className="p-8 bg-secondary/20">
-                                    <DialogTitle className="text-2xl font-black">Create Counterparty</DialogTitle>
-                                    <p className="text-sm text-muted-foreground">Add a new individual or company to your database</p>
-                                </DialogHeader>
+                                <div className="p-8 border-b border-border bg-muted/30">
+                                    <h2 className="text-xl font-black text-foreground">Create Counterparty</h2>
+                                    <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mt-1">Registry Initialization</p>
+                                </div>
                                 <div className="p-8 space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Type</label>
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Legal Type</label>
                                             <Select
                                                 value={newCounterparty.type}
                                                 onValueChange={(val) => setNewCounterparty({ ...newCounterparty, type: val as CounterpartyType })}
                                             >
-                                                <SelectTrigger className="h-12 bg-secondary/30 border-none rounded-xl">
-                                                    <SelectValue placeholder="Select type" />
+                                                <SelectTrigger className="h-11 bg-background border-border rounded-md text-foreground focus:ring-blue-500/50">
+                                                    <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value={CounterpartyType.INDIVIDUAL}>Individual (Фіз. особа)</SelectItem>
-                                                    <SelectItem value={CounterpartyType.COMPANY}>Company (Юр. особа)</SelectItem>
+                                                <SelectContent className="bg-popover border-border text-popover-foreground">
+                                                    <SelectItem value={CounterpartyType.INDIVIDUAL}>Individual Entity</SelectItem>
+                                                    <SelectItem value={CounterpartyType.COMPANY}>Corporate Entity</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Tax ID / EDRPOU</label>
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tax ID / Code</label>
                                             <Input
-                                                placeholder="Tax ID"
+                                                placeholder="00000000"
                                                 value={newCounterparty.taxId}
                                                 onChange={(e) => setNewCounterparty({ ...newCounterparty, taxId: e.target.value })}
-                                                className="h-12 bg-secondary/30 border-none rounded-xl"
+                                                className="h-11 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-sm"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
-                                            {newCounterparty.type === CounterpartyType.INDIVIDUAL ? 'Full Name' : 'Company Name'}
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                                            {newCounterparty.type === CounterpartyType.INDIVIDUAL ? 'Full Legal Name' : 'Company Designation'}
                                         </label>
                                         <Input
                                             required
-                                            placeholder={newCounterparty.type === CounterpartyType.INDIVIDUAL ? "John Doe" : "Bojumbo Tech LLC"}
+                                            placeholder={newCounterparty.type === CounterpartyType.INDIVIDUAL ? "Alex Mercer" : "Global Industries Ltd"}
                                             value={newCounterparty.name}
                                             onChange={(e) => setNewCounterparty({ ...newCounterparty, name: e.target.value })}
-                                            className="h-12 bg-secondary/30 border-none rounded-xl text-md"
+                                            className="h-11 bg-background border-border rounded-md focus:border-blue-500/50 transition-all text-sm"
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Email</label>
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Email Communication</label>
                                             <Input
                                                 type="email"
-                                                placeholder="client@example.com"
+                                                placeholder="protocol@node.js"
                                                 value={newCounterparty.email}
                                                 onChange={(e) => setNewCounterparty({ ...newCounterparty, email: e.target.value })}
-                                                className="h-12 bg-secondary/30 border-none rounded-xl"
+                                                className="h-11 bg-background border-border rounded-md text-sm"
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Phone</label>
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Phone Line</label>
                                             <Input
-                                                placeholder="+380..."
+                                                placeholder="+000 000 00 00"
                                                 value={newCounterparty.phone}
                                                 onChange={(e) => setNewCounterparty({ ...newCounterparty, phone: e.target.value })}
-                                                className="h-12 bg-secondary/30 border-none rounded-xl"
+                                                className="h-11 bg-background border-border rounded-md text-sm"
                                             />
                                         </div>
                                     </div>
 
                                     {newCounterparty.type === CounterpartyType.COMPANY && (
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Contact Person</label>
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Designated Representative</label>
                                             <Input
-                                                placeholder="Principal contact name"
+                                                placeholder="Lead contact person"
                                                 value={newCounterparty.contactPerson}
                                                 onChange={(e) => setNewCounterparty({ ...newCounterparty, contactPerson: e.target.value })}
-                                                className="h-12 bg-secondary/30 border-none rounded-xl"
+                                                className="h-11 bg-background border-border rounded-md text-sm"
                                             />
                                         </div>
                                     )}
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Address</label>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Operating Address</label>
                                         <Input
-                                            placeholder="Physical or legal address"
+                                            placeholder="Physical location"
                                             value={newCounterparty.address}
                                             onChange={(e) => setNewCounterparty({ ...newCounterparty, address: e.target.value })}
-                                            className="h-12 bg-secondary/30 border-none rounded-xl"
+                                            className="h-11 bg-background border-border rounded-md text-sm"
                                         />
                                     </div>
                                 </div>
-                                <DialogFooter className="p-8 bg-secondary/10 flex items-center justify-between">
-                                    <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)} className="font-bold">Cancel</Button>
-                                    <Button type="submit" className="font-bold px-8" disabled={creating}>
-                                        {creating ? 'Creating...' : 'Create Counterparty'}
+                                <div className="px-8 py-6 bg-muted/30 flex items-center justify-between border-t border-border">
+                                    <Button type="button" variant="ghost" onClick={() => setIsCreateOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors px-0">Discard</Button>
+                                    <Button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 rounded-md" disabled={creating}>
+                                        {creating ? 'Processing...' : 'Execute Entry'}
                                     </Button>
-                                </DialogFooter>
+                                </div>
                             </form>
                         </DialogContent>
                     </Dialog>
                 </div>
             </div>
 
-            <Card className="border-none shadow-xl overflow-hidden rounded-3xl bg-card/50 backdrop-blur-sm">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-lg">
                 <Table>
-                    <TableHeader className="bg-secondary/30">
-                        <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Name / Company</TableHead>
-                            <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Type</TableHead>
-                            <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Contact Details</TableHead>
-                            <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest">Tax ID</TableHead>
-                            <TableHead className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-right">Actions</TableHead>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent border-border border-b">
+                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Subject Designation</TableHead>
+                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Legal Classification</TableHead>
+                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Connection Points</TableHead>
+                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Identifier</TableHead>
+                            <TableHead className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground text-right">Operations</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredCounterparties.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-24">
-                                    <div className="space-y-4">
-                                        <div className="h-16 w-16 bg-secondary/50 rounded-full flex items-center justify-center mx-auto">
+                                <TableCell colSpan={5} className="text-center py-40 bg-muted/20">
+                                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-6">
+                                        <div className="h-20 w-20 bg-muted rounded-3xl border border-border flex items-center justify-center shadow-inner">
                                             <Users className="h-8 w-8 text-muted-foreground" />
                                         </div>
-                                        <p className="text-muted-foreground font-medium">No counterparties found</p>
-                                        <Button variant="outline" onClick={() => setIsCreateOpen(true)} className="rounded-xl">Add your first counterparty</Button>
+                                        <div className="space-y-2">
+                                            <h3 className="text-xl font-bold text-foreground tracking-tight">System Ledger Empty</h3>
+                                            <p className="text-sm text-muted-foreground leading-relaxed font-medium">No active counterparties detected in the current partition. Initialize your first entry to begin operations.</p>
+                                        </div>
+                                        <Button variant="outline" onClick={() => setIsCreateOpen(true)} className="rounded-md border-border hover:bg-muted text-foreground font-bold px-8 h-10 transition-all">
+                                            Initialize Entry
+                                        </Button>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -282,54 +293,61 @@ export default function CounterpartiesPage() {
                             filteredCounterparties.map((c) => (
                                 <TableRow
                                     key={c.id}
-                                    className="group hover:bg-primary/5 border-b border-foreground/5 cursor-pointer transition-all"
+                                    className="group hover:bg-muted/50 border-border border-b last:border-0 cursor-pointer transition-all duration-300"
                                     onClick={() => handleOpenCounterparty(c.id)}
                                 >
                                     <TableCell className="px-8 py-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 bg-secondary/50 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 flex-shrink-0 bg-muted rounded-lg flex items-center justify-center border border-border group-hover:border-blue-500/50 transition-colors">
                                                 {c.type === CounterpartyType.COMPANY ? (
-                                                    <Building2 className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                    <Building2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-blue-500" />
                                                 ) : (
-                                                    <User className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                    <User className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-amber-500" />
                                                 )}
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-lg">{c.name}</span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-bold text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors truncate">{c.name}</span>
                                                 {c.contactPerson && (
-                                                    <span className="text-xs text-muted-foreground">Contact: {c.contactPerson}</span>
+                                                    <span className="text-[10px] uppercase font-black tracking-tighter text-muted-foreground transition-colors">
+                                                        Agent: {c.contactPerson}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="px-8 py-6">
-                                        <Badge variant={c.type === CounterpartyType.COMPANY ? 'default' : 'secondary'} className="rounded-lg px-3 py-1 uppercase text-[10px] font-black tracking-widest">
-                                            {c.type}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="px-8 py-6">
-                                        <div className="flex flex-col gap-1">
-                                            {c.email && <span className="text-sm font-medium">{c.email}</span>}
-                                            {c.phone && <span className="text-xs text-muted-foreground">{c.phone}</span>}
+                                        <div className="flex">
+                                            <Badge variant="outline" className={cn(
+                                                "rounded-md px-2 py-0 text-[9px] font-black uppercase tracking-widest border-border",
+                                                c.type === CounterpartyType.COMPANY ? 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-blue-500/5' : 'text-zinc-700 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900/50'
+                                            )}>
+                                                {c.type}
+                                            </Badge>
                                         </div>
                                     </TableCell>
                                     <TableCell className="px-8 py-6">
-                                        <code className="bg-secondary/50 px-3 py-1 rounded-lg text-xs font-bold text-muted-foreground">
-                                            {c.taxId || 'N/A'}
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-xs font-bold text-foreground">{c.email || '—'}</span>
+                                            <span className="text-[10px] text-muted-foreground font-medium">{c.phone || 'NO_LINE'}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="px-8 py-6">
+                                        <code className="bg-muted px-2 py-0.5 rounded border border-border text-[10px] font-mono text-muted-foreground">
+                                            {c.taxId || 'UNSET'}
                                         </code>
                                     </TableCell>
                                     <TableCell className="px-8 py-6 text-right">
-                                        <div className="flex items-center justify-end gap-2 isolate">
+                                        <div className="flex items-center justify-end gap-3 isolate">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-10 w-10 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive shadow-sm"
+                                                className="h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-500 border border-transparent hover:border-red-500/50"
                                                 onClick={(e) => handleDeleteCounterparty(c.id, e)}
                                             >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
-                                            <div className="h-10 w-10 rounded-xl bg-secondary/50 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                            <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center border border-border text-muted-foreground group-hover:text-blue-500 transition-all group-hover:translate-x-1">
+                                                <ArrowRight className="h-3.5 w-3.5" />
                                             </div>
                                         </div>
                                     </TableCell>
@@ -338,7 +356,7 @@ export default function CounterpartiesPage() {
                         )}
                     </TableBody>
                 </Table>
-            </Card>
+            </div>
 
             <CounterpartyDetailsDrawer
                 counterpartyId={selectedCounterpartyId}
