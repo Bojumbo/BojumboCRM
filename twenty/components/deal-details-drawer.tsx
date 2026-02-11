@@ -81,6 +81,13 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
         (c as any).phone?.includes(searchTerm)
     );
 
+    const [productSearchTerm, setProductSearchTerm] = useState("");
+
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+        (p.sku && p.sku.toLowerCase().includes(productSearchTerm.toLowerCase()))
+    );
+
     const [activeTab, setActiveTab] = useState<'comments' | 'products' | 'documents'>('comments');
 
     const [isCreatingProduct, setIsCreatingProduct] = useState(false);
