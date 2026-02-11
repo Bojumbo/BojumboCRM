@@ -38,6 +38,7 @@ import { Plus, Trash2, Building2, User } from 'lucide-react';
 import { Pipeline, Stage } from '@prisma/client';
 import { updateDealStage, createDeal, deleteDeal } from '@/app/actions/deal';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import {
     Dialog,
     DialogContent,
@@ -50,11 +51,15 @@ export type SafeDeal = {
     amount: number;
     stageId: string;
     status: string;
-    counterpartyId?: string | null;
     counterparty?: {
+        id: string;
         name: string;
         type: string;
     } | null;
+    managers: {
+        id: string;
+        name: string | null;
+    }[];
     createdAt: string;
     updatedAt: string;
 };
@@ -63,6 +68,8 @@ interface KanbanBoardProps {
     pipelines: (Pipeline & { stages: Stage[] })[];
     currentPipelineId: string;
     initialDeals: SafeDeal[];
+    users: { id: string; name: string | null }[];
+    counterparties: { id: string; name: string }[];
 }
 
 const dropAnimation: DropAnimation = {
@@ -77,26 +84,24 @@ const dropAnimation: DropAnimation = {
 
 function DealCardItem({ deal, onDelete, onClick }: { deal: SafeDeal; onDelete?: (id: string) => void; onClick?: () => void }) {
     return (
-        <Card className="bg-card border-border hover:border-blue-500/50 transition-all duration-300 shadow-sm overflow-hidden group-hover:shadow-md h-full">
-            <div className="p-2 space-y-2 h-full flex flex-col justify-between">
-                <div className="flex flex-col gap-2">
+        <Card className="bg-card border-border hover:border-blue-500/50 transition-all duration-300 shadow-sm overflow-hidden group/card hover:shadow-md h-full">
+            <div className="p-2.5 h-full flex flex-col justify-between">
+                <div className="space-y-2">
                     <div className="flex items-start justify-between gap-1.5">
-                        <div className="flex-1 min-w-0">
-                            <h4
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onClick?.();
-                                }}
-                                className="font-bold text-[10px] text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors leading-tight line-clamp-2 select-none cursor-pointer"
-                            >
-                                {deal.title}
-                            </h4>
-                        </div>
+                        <h4
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClick?.();
+                            }}
+                            className="font-bold text-[10px] text-foreground group-hover/card:text-blue-600 transition-colors leading-tight line-clamp-2 select-none cursor-pointer flex-1"
+                        >
+                            {deal.title}
+                        </h4>
                         {onDelete && (
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-4 w-4 -mr-1 -mt-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                className="h-4 w-4 opacity-0 group-hover/card:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -109,29 +114,36 @@ function DealCardItem({ deal, onDelete, onClick }: { deal: SafeDeal; onDelete?: 
                     </div>
 
                     {deal.counterparty && (
-                        <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border border-border w-fit">
-                            {deal.counterparty.type === 'COMPANY' ? <Building2 className="h-2.5 w-2.5 text-blue-500" /> : <User className="h-2.5 w-2.5 text-amber-500" />}
-                            <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground truncate max-w-[120px]">
+                        <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md bg-muted/50 border border-border w-fit">
+                            {deal.counterparty.type === 'COMPANY' ? <Building2 className="h-2 w-2 text-blue-500" /> : <User className="h-2 w-2 text-amber-500" />}
+                            <span className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground truncate max-w-[120px]">
                                 {deal.counterparty.name}
                             </span>
                         </div>
                     )}
                 </div>
 
-                <div className="flex items-center justify-between pt-2 mt-auto">
-                    <Badge variant="outline" className="bg-muted/30 border-border text-foreground font-mono text-[10px] py-0 px-2 h-6 font-black">
+                <div className="flex items-center justify-between mt-3">
+                    <div className="bg-muted/50 border border-border text-foreground px-2 py-0.5 rounded-md text-[11px] font-bold font-mono">
                         ${deal.amount.toLocaleString()}
-                    </Badge>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                        {new Date(deal.updatedAt).toLocaleDateString()}
-                    </span>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-1 max-w-[130px]">
+                        {deal.managers && deal.managers.length > 0 && deal.managers.map((m) => (
+                            <div
+                                key={m.id}
+                                className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-bold whitespace-nowrap"
+                            >
+                                {m.name || 'Manager'}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </Card>
     );
 }
 
-function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelete: (id: string) => void; onClick: () => void }) {
+function SortableDealCard({ deal, onDelete, onClick }: { deal: SafeDeal; onDelete?: (id: string) => void; onClick: () => void }) {
     const {
         setNodeRef,
         attributes,
@@ -184,8 +196,8 @@ function KanbanColumn({
 }: {
     stage: Stage;
     deals: SafeDeal[];
-    onAddDeal: (stageId: string) => void;
-    onDeleteDeal: (dealId: string) => void;
+    onAddDeal?: (stageId: string) => void;
+    onDeleteDeal?: (dealId: string) => void;
     onOpenDeal: (dealId: string) => void;
 }) {
     const { setNodeRef } = useSortable({
@@ -208,14 +220,16 @@ function KanbanColumn({
                         {deals.length}
                     </Badge>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-md hover:bg-muted border border-transparent hover:border-border transition-all"
-                    onClick={() => onAddDeal(stage.id)}
-                >
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                {onAddDeal && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-md hover:bg-muted border border-transparent hover:border-border transition-all"
+                        onClick={() => onAddDeal(stage.id)}
+                    >
+                        <Plus className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                )}
             </div>
 
             <div ref={setNodeRef} className="flex-1 px-1 overflow-y-auto min-h-[500px] scrollbar-hide">
@@ -231,12 +245,14 @@ function KanbanColumn({
     );
 }
 
-export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: KanbanBoardProps) {
+export function KanbanBoard({ pipelines, currentPipelineId, initialDeals, users, counterparties }: KanbanBoardProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { toast } = useToast();
 
     const [deals, setDeals] = useState<SafeDeal[]>(initialDeals);
+    const [managerFilter, setManagerFilter] = useState<string>('all');
+    const [counterpartyFilter, setCounterpartyFilter] = useState<string>('all');
     const [activeDragItem, setActiveDragItem] = useState<SafeDeal | null>(null);
     const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -244,6 +260,13 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
     useEffect(() => {
         setDeals(initialDeals);
     }, [initialDeals]);
+
+    const filteredDeals = deals.filter(deal => {
+        const matchesManager = managerFilter === 'all' || deal.managers.some(m => m.id === managerFilter);
+        const matchesCounterparty = counterpartyFilter === 'all' ||
+            (deal as any).counterparty?.id === counterpartyFilter; // SafeDeal doesn't have counterpartyId but has counterparty object
+        return matchesManager && matchesCounterparty;
+    });
 
     // Activation constraint додано для уникнення конфлікту між кліком та початком тяжіння
     const sensors = useSensors(
@@ -301,6 +324,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
 
     const onDragEnd = async (event: DragEndEvent) => {
         setActiveDragItem(null);
+
         const { active, over } = event;
         if (!over) return;
         const activeId = active.id as string;
@@ -315,8 +339,13 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
         }
 
         if (finalStageId !== initialDeals.find(d => d.id === activeId)?.stageId) {
-            await updateDealStage(activeId, finalStageId);
-            toast({ title: 'Оновлено та синхронізовано' });
+            const res = await updateDealStage(activeId, finalStageId);
+            if (res.success) {
+                toast({ title: 'Оновлено та синхронізовано' });
+            } else {
+                setDeals(initialDeals); // Revert state
+                toast({ variant: "destructive", title: "Logic Sync Error", description: res.error });
+            }
         }
     };
 
@@ -340,6 +369,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                 amount: Number(res.data.amount),
                 stageId: res.data.stageId,
                 status: res.data.status,
+                managers: [],
                 createdAt: res.data.createdAt,
                 updatedAt: res.data.updatedAt
             };
@@ -351,9 +381,13 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
 
     const handleDeleteDeal = async (id: string) => {
         if (confirm('Terminate workframe?')) {
-            setDeals(deals.filter(d => d.id !== id));
-            await deleteDeal(id);
-            toast({ title: 'Registry Update: Entry Purged' });
+            const res = await deleteDeal(id);
+            if (res.success) {
+                setDeals(deals.filter(d => d.id !== id));
+                toast({ title: 'Registry Update: Entry Purged' });
+            } else {
+                toast({ variant: "destructive", title: "Critical Error: Access or Data Failure" });
+            }
         }
     };
 
@@ -370,7 +404,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                         <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Active Pipeline</span>
                         <div className="h-2.5 w-[1px] bg-border" />
                         <Select value={currentPipelineId} onValueChange={handlePipelineChange}>
-                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-xs font-bold text-foreground focus:ring-0 w-[140px]">
+                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-xs font-bold text-foreground focus:ring-0 focus:ring-offset-0 w-[140px]">
                                 <SelectValue placeholder="Pipeline Selection" />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border-border text-popover-foreground">
@@ -384,9 +418,47 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                     </div>
                 </div>
 
+                <div className="flex items-center gap-2">
+                    <div className="h-8 px-2 bg-muted border border-border rounded-md flex items-center gap-2">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Manager</span>
+                        <div className="h-2.5 w-[1px] bg-border" />
+                        <Select value={managerFilter} onValueChange={setManagerFilter}>
+                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-xs font-bold text-foreground focus:ring-0 focus:ring-offset-0 w-[120px]">
+                                <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border-border">
+                                <SelectItem value="all" className="text-xs font-medium">All Managers</SelectItem>
+                                {users.map((u) => (
+                                    <SelectItem key={u.id} value={u.id} className="text-xs font-medium">
+                                        {u.name || 'Unnamed'}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="h-8 px-2 bg-muted border border-border rounded-md flex items-center gap-2">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Counterparty</span>
+                        <div className="h-2.5 w-[1px] bg-border" />
+                        <Select value={counterpartyFilter} onValueChange={setCounterpartyFilter}>
+                            <SelectTrigger className="h-full border-none bg-transparent p-0 text-xs font-bold text-foreground focus:ring-0 focus:ring-offset-0 w-[120px]">
+                                <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border-border">
+                                <SelectItem value="all" className="text-xs font-medium">All Counterparties</SelectItem>
+                                {counterparties.map((c) => (
+                                    <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
+                                        {c.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="border-border text-muted-foreground font-bold uppercase text-[10px] px-3">
-                        Total Value: ${deals.reduce((acc, d) => acc + d.amount, 0).toLocaleString()}
+                        Visible Value: ${filteredDeals.reduce((acc, d) => acc + d.amount, 0).toLocaleString()}
                     </Badge>
                 </div>
             </div>
@@ -404,7 +476,7 @@ export function KanbanBoard({ pipelines, currentPipelineId, initialDeals }: Kanb
                             <KanbanColumn
                                 key={stage.id}
                                 stage={stage}
-                                deals={deals.filter(d => d.stageId === stage.id)}
+                                deals={filteredDeals.filter(d => d.stageId === stage.id)}
                                 onAddDeal={handleAddDealClick}
                                 onDeleteDeal={handleDeleteDeal}
                                 onOpenDeal={handleOpenDeal}

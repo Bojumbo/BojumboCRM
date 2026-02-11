@@ -15,6 +15,7 @@ import {
 import { Product } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Package, Tag, Info, Hash, DollarSign, Clock, User, BarChart3, Archive } from "lucide-react";
+import { usePermission } from "@/hooks/use-permission";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function ProductDetailsDialog({ productId, open, onOpenChange, onUpdate }
     const [product, setProduct] = useState<SerializedProduct | null>(null);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const { can } = usePermission();
 
     const fetchProduct = useCallback(async () => {
         if (!productId) return;
@@ -112,7 +114,8 @@ export function ProductDetailsDialog({ productId, open, onOpenChange, onUpdate }
                                         value={product.name}
                                         onChange={(e) => setProduct({ ...product, name: e.target.value })}
                                         onBlur={() => handleUpdateProduct('name', product.name)}
-                                        className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-12 text-sm font-bold text-foreground placeholder:text-muted-foreground/30"
+                                        disabled={!can('products', 'edit')}
+                                        className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-12 text-sm font-bold text-foreground placeholder:text-muted-foreground/30 disabled:opacity-100 disabled:cursor-default"
                                     />
                                 </div>
 
@@ -126,7 +129,8 @@ export function ProductDetailsDialog({ productId, open, onOpenChange, onUpdate }
                                             placeholder="NOT_ASSIGNED"
                                             onChange={(e) => setProduct({ ...product, sku: e.target.value })}
                                             onBlur={() => handleUpdateProduct("sku", product.sku || "")}
-                                            className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-11 text-xs font-mono text-foreground placeholder:text-muted-foreground/30"
+                                            disabled={!can('products', 'edit')}
+                                            className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-11 text-xs font-mono text-foreground placeholder:text-muted-foreground/30 disabled:opacity-100 disabled:cursor-default"
                                         />
                                     </div>
                                     <div className="space-y-2.5">
@@ -140,7 +144,8 @@ export function ProductDetailsDialog({ productId, open, onOpenChange, onUpdate }
                                                 value={Number(product.defaultPrice)}
                                                 onChange={(e) => setProduct({ ...product, defaultPrice: e.target.value })}
                                                 onBlur={() => handleUpdateProduct("defaultPrice", Number(product.defaultPrice))}
-                                                className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-11 pl-7 text-sm font-mono text-foreground font-bold"
+                                                disabled={!can('products', 'edit')}
+                                                className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-11 pl-7 text-sm font-mono text-foreground font-bold disabled:opacity-100 disabled:cursor-default"
                                             />
                                         </div>
                                     </div>
@@ -155,7 +160,8 @@ export function ProductDetailsDialog({ productId, open, onOpenChange, onUpdate }
                                         onChange={(e) => setProduct({ ...product, description: e.target.value })}
                                         onBlur={() => handleUpdateProduct("description", product.description || "")}
                                         placeholder="Define asset operational parameters..."
-                                        className="bg-muted/5 border-border rounded-md resize-none min-h-[140px] focus:border-blue-500/30 text-xs leading-relaxed text-foreground transition-all"
+                                        disabled={!can('products', 'edit')}
+                                        className="bg-muted/5 border-border rounded-md resize-none min-h-[140px] focus:border-blue-500/30 text-xs leading-relaxed text-foreground transition-all disabled:opacity-100 disabled:cursor-default"
                                     />
                                 </div>
                             </div>
@@ -203,9 +209,11 @@ export function ProductDetailsDialog({ productId, open, onOpenChange, onUpdate }
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="sm" className="h-8 px-3 text-[9px] font-black uppercase text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/30 gap-1.5">
-                            <Archive className="h-3 w-3" /> Purge Entry
-                        </Button>
+                        {can('products', 'delete') && (
+                            <Button variant="ghost" size="sm" className="h-8 px-3 text-[9px] font-black uppercase text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/30 gap-1.5">
+                                <Archive className="h-3 w-3" /> Purge Entry
+                            </Button>
+                        )}
                         <Badge className="bg-background text-muted-foreground border-border text-[9px] font-black uppercase px-2 shadow-inner">
                             v.1.0-NODE
                         </Badge>

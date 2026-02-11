@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProductDetailsDialog } from '@/components/product-details-dialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { usePermission } from '@/hooks/use-permission';
 
 type SerializedProduct = Omit<Product, 'defaultPrice'> & {
     defaultPrice: number | string;
@@ -34,6 +35,7 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const { toast } = useToast();
+    const { can, loading: permsLoading } = usePermission();
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -98,10 +100,26 @@ export default function ProductsPage() {
         (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    if (loading && products.length === 0) {
+    if ((loading || permsLoading) && products.length === 0) {
         return (
             <div className="flex-1 flex items-center justify-center min-h-[400px]">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+            </div>
+        );
+    }
+
+    if (!can('products', 'view')) {
+        return (
+            <div className="flex-1 flex items-center justify-center min-h-[400px]">
+                <div className="text-center space-y-4">
+                    <div className="h-12 w-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-500">
+                        <Package className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-black uppercase tracking-widest text-foreground">Access Denied</h2>
+                        <p className="text-xs text-muted-foreground font-medium mt-1">Operational clearance недостаточно for asset ledger viewing.</p>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -130,9 +148,11 @@ export default function ProductsPage() {
                         />
                     </div>
 
-                    <Button onClick={() => setIsCreateOpen(true)} className="h-10 bg-blue-600 hover:bg-blue-500 text-white font-black px-6 rounded-md transition-all shadow-lg shadow-blue-500/10 gap-2 text-xs tracking-tight">
-                        <Plus className="h-4 w-4" /> INITIALIZE ASSET
-                    </Button>
+                    {can('products', 'create') && (
+                        <Button onClick={() => setIsCreateOpen(true)} className="h-10 bg-blue-600 hover:bg-blue-500 text-white font-black px-6 rounded-md transition-all shadow-lg shadow-blue-500/10 gap-2 text-xs tracking-tight">
+                            <Plus className="h-4 w-4" /> INITIALIZE ASSET
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -140,11 +160,11 @@ export default function ProductsPage() {
                 <Table>
                     <TableHeader className="bg-muted/50 border-b border-border">
                         <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Asset Designation</TableHead>
-                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Node SKU</TableHead>
-                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Unit Val</TableHead>
-                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description Protocol</TableHead>
-                            <TableHead className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Sequence</TableHead>
+                            <TableHead className="px-2 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Asset Designation</TableHead>
+                            <TableHead className="px-2 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Node SKU</TableHead>
+                            <TableHead className="px-2 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground text-center">Unit Val</TableHead>
+                            <TableHead className="px-2 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Description Protocol</TableHead>
+                            <TableHead className="px-2 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground text-right">Sequence</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -159,9 +179,11 @@ export default function ProductsPage() {
                                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No Buffer Entries Detected</p>
                                             <p className="text-[11px] text-muted-foreground font-bold max-w-xs mx-auto leading-relaxed uppercase tracking-tighter opacity-50">Operational matrix is currently devoid of inventory nodes.</p>
                                         </div>
-                                        <Button onClick={() => setIsCreateOpen(true)} className="bg-muted hover:bg-muted/80 text-foreground font-black px-8 rounded-md border border-border py-6 h-auto">
-                                            COMMENCE INJECTION
-                                        </Button>
+                                        {can('products', 'create') && (
+                                            <Button onClick={() => setIsCreateOpen(true)} className="bg-muted hover:bg-muted/80 text-foreground font-black px-8 rounded-md border border-border py-6 h-auto">
+                                                COMMENCE INJECTION
+                                            </Button>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -174,41 +196,43 @@ export default function ProductsPage() {
                                 >
                                     <TableCell className="px-2 py-1.5">
                                         <div className="flex items-center gap-2">
-                                            <div className="h-6 w-6 flex-shrink-0 bg-muted rounded-md flex items-center justify-center border border-border group-hover:border-blue-500/50 transition-colors">
-                                                <Package className="h-3 w-3 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                                            <div className="h-8 w-8 flex-shrink-0 bg-muted rounded-md flex items-center justify-center border border-border group-hover:border-blue-500/50 transition-colors">
+                                                <Package className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
                                             </div>
                                             <div className="flex flex-col min-w-0">
-                                                <span className="font-bold text-[10px] text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors truncate">{p.name}</span>
-                                                <span className="text-[8px] uppercase font-black tracking-tighter text-muted-foreground transition-colors">TYPE: {p.sku ? 'QUANTIFIED' : 'UNSPECIFIED'}</span>
+                                                <span className="font-bold text-[13px] text-foreground group-hover:text-blue-600 dark:group-hover:text-white transition-colors truncate">{p.name}</span>
+                                                <span className="text-[10px] uppercase font-black tracking-tighter text-muted-foreground transition-colors">TYPE: {p.sku ? 'QUANTIFIED' : 'UNSPECIFIED'}</span>
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="px-2 py-1.5">
-                                        <code className="bg-muted px-1 py-0.5 rounded border border-border text-[9px] font-mono text-muted-foreground">
+                                    <TableCell className="px-2 py-3">
+                                        <code className="bg-muted px-2 py-1 rounded border border-border text-[11px] font-bold font-mono text-muted-foreground shadow-sm">
                                             {p.sku || 'NOC_SKU'}
                                         </code>
                                     </TableCell>
-                                    <TableCell className="px-2 py-1.5 text-center">
-                                        <div className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded-md border border-border shadow-inner">
-                                            <DollarSign className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-500" />
-                                            <span className="text-[10px] font-black text-foreground font-mono">{Number(p.defaultPrice).toLocaleString()}</span>
+                                    <TableCell className="px-2 py-3 text-center">
+                                        <div className="inline-flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md border border-border shadow-inner">
+                                            <DollarSign className="h-3 w-3 text-emerald-600 dark:text-emerald-500" />
+                                            <span className="text-[11px] font-bold text-foreground font-mono">{Number(p.defaultPrice).toLocaleString()}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="px-2 py-1.5">
-                                        <p className="text-[9px] font-bold text-muted-foreground line-clamp-1 max-w-[280px] transition-colors">
+                                    <TableCell className="px-2 py-3">
+                                        <p className="text-[11px] font-medium text-muted-foreground line-clamp-1 max-w-[280px] transition-colors">
                                             {p.description || 'PROTO_STUB: No specialized logic defined for this node.'}
                                         </p>
                                     </TableCell>
                                     <TableCell className="px-2 py-1.5 text-right">
                                         <div className="flex items-center justify-end gap-1 isolate">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20"
-                                                onClick={(e) => handleDeleteProduct(p.id, e)}
-                                            >
-                                                <Trash2 className="h-2.5 w-2.5" />
-                                            </Button>
+                                            {can('products', 'delete') && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20"
+                                                    onClick={(e) => handleDeleteProduct(p.id, e)}
+                                                >
+                                                    <Trash2 className="h-2.5 w-2.5" />
+                                                </Button>
+                                            )}
                                             <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center border border-border text-muted-foreground group-hover:text-blue-500 transition-all group-hover:translate-x-1">
                                                 <ArrowRight className="h-2.5 w-2.5" />
                                             </div>

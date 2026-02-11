@@ -16,6 +16,7 @@ import { Loader2, Building2, User, Phone, Mail, MapPin, Hash, Briefcase, Externa
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/use-permission";
 
 interface CounterpartyDetailsDrawerProps {
     counterpartyId: string | null;
@@ -28,6 +29,7 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
     const [counterparty, setCounterparty] = useState<Counterparty | null>(null);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const { can } = usePermission();
 
     const fetchCounterparty = useCallback(async () => {
         if (!counterpartyId) return;
@@ -114,7 +116,8 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                                         value={counterparty.name}
                                         onChange={(e) => setCounterparty({ ...counterparty, name: e.target.value })}
                                         onBlur={() => handleUpdate('name', counterparty.name)}
-                                        className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-12 text-sm font-bold text-foreground"
+                                        disabled={!can('counterparties', 'edit')}
+                                        className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-12 text-sm font-bold text-foreground disabled:opacity-100 disabled:cursor-default"
                                     />
                                 </div>
 
@@ -128,7 +131,8 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                                             placeholder="NOT_SET"
                                             onChange={(e) => setCounterparty({ ...counterparty, taxId: e.target.value })}
                                             onBlur={() => handleUpdate('taxId', counterparty.taxId)}
-                                            className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-11 text-xs font-mono text-foreground"
+                                            disabled={!can('counterparties', 'edit')}
+                                            className="bg-muted/10 border-border focus:border-blue-500/50 transition-all rounded-md h-11 text-xs font-mono text-foreground disabled:opacity-100 disabled:cursor-default"
                                         />
                                     </div>
                                     <div className="space-y-2.5">
@@ -158,7 +162,8 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                                         placeholder="system@protocol.io"
                                         onChange={(e) => setCounterparty({ ...counterparty, email: e.target.value })}
                                         onBlur={() => handleUpdate('email', counterparty.email)}
-                                        className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all"
+                                        disabled={!can('counterparties', 'edit')}
+                                        className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all disabled:opacity-100 disabled:cursor-default"
                                     />
                                     <div className="absolute right-3 top-3">
                                         <span className="text-[8px] font-black uppercase text-muted-foreground/50">Email</span>
@@ -174,7 +179,8 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                                         placeholder="+000 000 000 000"
                                         onChange={(e) => setCounterparty({ ...counterparty, phone: e.target.value })}
                                         onBlur={() => handleUpdate('phone', counterparty.phone)}
-                                        className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all"
+                                        disabled={!can('counterparties', 'edit')}
+                                        className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all disabled:opacity-100 disabled:cursor-default"
                                     />
                                     <div className="absolute right-3 top-3">
                                         <span className="text-[8px] font-black uppercase text-muted-foreground/50">Phone</span>
@@ -191,7 +197,8 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                                             placeholder="Designated Representative"
                                             onChange={(e) => setCounterparty({ ...counterparty, contactPerson: e.target.value })}
                                             onBlur={() => handleUpdate('contactPerson', counterparty.contactPerson)}
-                                            className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all"
+                                            disabled={!can('counterparties', 'edit')}
+                                            className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all disabled:opacity-100 disabled:cursor-default"
                                         />
                                         <div className="absolute right-3 top-3">
                                             <span className="text-[8px] font-black uppercase text-muted-foreground/50">Agent</span>
@@ -208,7 +215,8 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                                         placeholder="Geo Location Data"
                                         onChange={(e) => setCounterparty({ ...counterparty, address: e.target.value })}
                                         onBlur={() => handleUpdate('address', counterparty.address)}
-                                        className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all"
+                                        disabled={!can('counterparties', 'edit')}
+                                        className="bg-muted/10 border-border focus:border-blue-500/50 rounded-md h-11 text-xs pl-10 text-foreground transition-all disabled:opacity-100 disabled:cursor-default"
                                     />
                                     <div className="absolute right-3 top-3">
                                         <span className="text-[8px] font-black uppercase text-muted-foreground/50">Geo</span>
@@ -225,7 +233,12 @@ export function CounterpartyDetailsDrawer({ counterpartyId, open, onOpenChange, 
                             </div>
 
                             <div className="grid grid-cols-1 gap-3">
-                                {((counterparty as any).deals)?.length > 0 ? (
+                                {!can('deals', 'view') ? (
+                                    <div className="p-10 rounded-xl bg-red-500/5 border border-red-500/10 flex flex-col items-center justify-center text-center space-y-2 opacity-60">
+                                        <Briefcase className="h-4 w-4 text-red-500/50" />
+                                        <p className="text-[9px] font-bold text-red-500/70 uppercase tracking-widest">Access Restricted</p>
+                                    </div>
+                                ) : ((counterparty as any).deals)?.length > 0 ? (
                                     (counterparty as any).deals.map((deal: any) => (
                                         <div key={deal.id} className="group/deal p-4 rounded-xl bg-card border border-border hover:bg-accent hover:border-accent-foreground/10 transition-all flex items-center justify-between shadow-sm">
                                             <div className="flex items-center gap-4">

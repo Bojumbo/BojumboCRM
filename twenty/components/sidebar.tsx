@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
 import {
     LayoutDashboard,
     Users,
@@ -56,6 +57,38 @@ export function Sidebar({ className }: SidebarProps) {
     const user = session?.user as CustomUser | undefined;
     const isAdmin = user?.role === 'ADMIN';
 
+    // Activity Tracking
+    useEffect(() => {
+        if (!session?.user) return;
+
+        // Mark initial activity
+        import('@/app/actions/user').then(mod => mod.logActivity());
+
+        let activityDetected = false;
+        const handleActivity = () => { activityDetected = true; };
+
+        // Bind listeners
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+        window.addEventListener('click', handleActivity);
+
+        // Check activity every minute
+        const interval = setInterval(() => {
+            if (activityDetected) {
+                import('@/app/actions/user').then(mod => mod.logActivity());
+                activityDetected = false;
+            }
+        }, 60000);
+
+        return () => {
+            window.removeEventListener('mousemove', handleActivity);
+            window.removeEventListener('keydown', handleActivity);
+            window.removeEventListener('click', handleActivity);
+            clearInterval(interval);
+        };
+    }, [session]);
+
+
     return (
         <div className={cn('w-[200px] border-r border-zinc-200 dark:border-zinc-800/50 bg-zinc-50 dark:bg-[#0a0a0a] h-screen hidden md:flex flex-col fixed left-0 top-0 z-40 transition-colors', className)}>
             <div className="flex px-3 h-10 items-center justify-center border-b border-zinc-200 dark:border-zinc-800/50">
@@ -89,49 +122,50 @@ export function Sidebar({ className }: SidebarProps) {
                     })}
                 </div>
 
-                {isAdmin && (
-                    <div className="space-y-2">
-                        <div className="px-2 text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">
-                            Enterprise Control
-                        </div>
-                        <div className="space-y-0.5">
-                            <Link
-                                href="/admin/users"
-                                className={cn(
-                                    "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200 group",
-                                    pathname === "/admin/users"
-                                        ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 font-bold"
-                                        : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 border border-transparent font-medium"
-                                )}
-                            >
-                                <Users className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                                <span className="tracking-tight">Користувачі</span>
-                            </Link>
-                            <Link
-                                href="/admin/pipelines"
-                                className={cn(
-                                    "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200 group",
-                                    pathname === "/admin/pipelines"
-                                        ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 font-bold"
-                                        : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 border border-transparent font-medium"
-                                )}
-                            >
-                                <Briefcase className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                                <span className="tracking-tight">Логіка & Воронки</span>
-                            </Link>
-                        </div>
+                <div className="space-y-2">
+                    <div className="px-2 text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-600">
+                        Enterprise Control
                     </div>
-                )}
+                    <div className="space-y-0.5">
+                        <Link
+                            href="/admin/users"
+                            className={cn(
+                                "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200 group",
+                                pathname === "/admin/users"
+                                    ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 font-bold"
+                                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 border border-transparent font-medium"
+                            )}
+                        >
+                            <Users className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                            <span className="tracking-tight">Користувачі</span>
+                        </Link>
+                        <Link
+                            href="/admin/pipelines"
+                            className={cn(
+                                "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200 group",
+                                pathname === "/admin/pipelines"
+                                    ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 font-bold"
+                                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 border border-transparent font-medium"
+                            )}
+                        >
+                            <Briefcase className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                            <span className="tracking-tight">Логіка & Воронки</span>
+                        </Link>
+                    </div>
+                </div>
             </div>
 
             <div className="p-2 border-t border-zinc-200 dark:border-zinc-800/50 bg-white dark:bg-black/50">
                 <div className="px-2 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800/50 flex items-center gap-2">
-                    <div className="h-6 w-6 rounded-md bg-blue-600 flex items-center justify-center text-[9px] font-bold text-white uppercase italic">
-                        {user?.name?.substring(0, 2) || 'AD'}
+                    <div className="h-6 w-6 rounded-md bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-[8px] font-bold text-zinc-700 dark:text-zinc-300 uppercase">
+                        {user?.role?.substring(0, 2)}
                     </div>
                     <div className="flex flex-col overflow-hidden min-w-0">
-                        <span className="text-[10px] font-bold text-zinc-900 dark:text-zinc-200 truncate">{user?.name || 'Administrator'}</span>
-                        <span className="text-[8px] text-zinc-500 dark:text-zinc-500 truncate lowercase">{user?.email}</span>
+                        <span className="text-[10px] font-bold text-zinc-900 dark:text-zinc-200 truncate">{user?.name || 'User'}</span>
+                        <div className="flex items-center gap-1">
+                            <div className="h-1 w-1 rounded-full bg-blue-500" />
+                            <span className="text-[8px] text-zinc-500 dark:text-zinc-500 truncate uppercase font-bold tracking-tighter">{user?.role}</span>
+                        </div>
                     </div>
                 </div>
             </div>

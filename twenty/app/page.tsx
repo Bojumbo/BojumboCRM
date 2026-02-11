@@ -5,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/use-permission";
 
 export default function Home() {
+  const { can, loading } = usePermission();
+
+  if (loading) return null;
+
   return (
     <div className="flex flex-col h-full items-center justify-center min-h-[70vh] relative overflow-hidden">
       {/* Background Ambience */}
@@ -26,35 +31,43 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
-          <DashboardModule
-            icon={<Users className="h-5 w-5" />}
-            label="Nodes"
-            title="Counterparties"
-            desc="Entity Registry"
-            href="/counterparties"
-          />
-          <DashboardModule
-            icon={<Layers className="h-5 w-5" />}
-            label="Pipelines"
-            title="Deal Stream"
-            desc="Kanban Logic"
-            href="/deals"
-          />
-          <DashboardModule
-            icon={<ShieldCheck className="h-5 w-5" />}
-            label="Assets"
-            title="Products"
-            desc="Valuation Buffer"
-            href="/products"
-          />
+          {can('counterparties', 'view') && (
+            <DashboardModule
+              icon={<Users className="h-5 w-5" />}
+              label="Nodes"
+              title="Counterparties"
+              desc="Entity Registry"
+              href="/counterparties"
+            />
+          )}
+          {can('deals', 'view') && (
+            <DashboardModule
+              icon={<Layers className="h-5 w-5" />}
+              label="Pipelines"
+              title="Deal Stream"
+              desc="Kanban Logic"
+              href="/deals"
+            />
+          )}
+          {can('products', 'view') && (
+            <DashboardModule
+              icon={<ShieldCheck className="h-5 w-5" />}
+              label="Assets"
+              title="Products"
+              desc="Valuation Buffer"
+              href="/products"
+            />
+          )}
         </div>
 
         <div className="flex items-center justify-center gap-3 pt-3 animate-in fade-in zoom-in-95 duration-1000 delay-500">
-          <Button asChild className="h-9 px-6 bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-md shadow-md shadow-blue-500/10 group">
-            <Link href="/deals" className="flex items-center gap-2">
-              Initialize Terminal <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </Button>
+          {can('deals', 'view') && (
+            <Button asChild className="h-9 px-6 bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-md shadow-md shadow-blue-500/10 group">
+              <Link href="/deals" className="flex items-center gap-2">
+                Initialize Terminal <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </Button>
+          )}
           <div className="h-6 w-[1px] bg-border" />
           <div className="flex flex-col items-start">
             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">System Status</span>

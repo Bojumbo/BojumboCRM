@@ -17,6 +17,14 @@ export async function getDealsByPipeline(pipelineId: string) {
             },
             include: {
                 stage: true,
+                managers: true,
+                counterparty: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                    }
+                }
             },
         });
     } catch {
@@ -37,15 +45,31 @@ export async function getDealDetails(id: string) {
                     product: true,
                 },
             },
+            managers: true,
         },
     });
 }
 
-export async function updateDeal(id: string, data: { title?: string; description?: string; amount?: number; counterpartyId?: string | null }) {
+export async function updateDeal(id: string, data: {
+    title?: string;
+    description?: string;
+    amount?: number;
+    counterpartyId?: string | null;
+    managerIds?: string[];
+}) {
     try {
+        const { managerIds, ...rest } = data;
+
         const deal = await prisma.deal.update({
             where: { id },
-            data,
+            data: {
+                ...rest,
+                ...(managerIds && {
+                    managers: {
+                        set: managerIds.map(mid => ({ id: mid }))
+                    }
+                })
+            },
         });
         revalidatePath('/deals');
         return { success: true, data: JSON.parse(JSON.stringify(deal)) };

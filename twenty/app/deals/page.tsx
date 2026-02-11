@@ -1,6 +1,8 @@
 import { getPipelines } from '@/app/actions/pipeline';
 import { getDealsByPipeline } from '@/app/actions/deal';
 import { KanbanBoard, SafeDeal } from '@/components/kanban-board';
+import { getCounterparties } from '@/app/actions/counterparty';
+import { getAllUsers } from '@/app/actions/user';
 import { Deal } from '@prisma/client';
 
 export default async function DealsPage({
@@ -29,15 +31,24 @@ export default async function DealsPage({
     );
   }
 
-  const rawDeals = await getDealsByPipeline(currentPipelineId);
+  const [rawDeals, counterparties, users] = await Promise.all([
+    getDealsByPipeline(currentPipelineId),
+    getCounterparties(),
+    getAllUsers()
+  ]);
 
   // Serialize deals
-  const deals: SafeDeal[] = rawDeals.map((deal: Deal) => ({
+  const deals: SafeDeal[] = rawDeals.map((deal: any) => ({
     id: deal.id,
     title: deal.title,
-    amount: Number(deal.amount), // Convert Decimal to number
+    amount: Number(deal.amount),
     stageId: deal.stageId,
     status: deal.status,
+    counterparty: deal.counterparty,
+    managers: (deal.managers || []).map((m: any) => ({
+      id: m.id,
+      name: m.name
+    })),
     createdAt: deal.createdAt.toISOString(),
     updatedAt: deal.updatedAt.toISOString()
   }));
@@ -52,6 +63,8 @@ export default async function DealsPage({
           pipelines={pipelines}
           currentPipelineId={currentPipelineId}
           initialDeals={deals}
+          users={users.map(u => ({ id: u.id, name: u.name }))}
+          counterparties={counterparties.map(c => ({ id: c.id, name: c.name }))}
         />
       </div>
     </div>

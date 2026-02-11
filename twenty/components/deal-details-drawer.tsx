@@ -38,7 +38,8 @@ import {
 } from "@/app/actions/deal";
 import { getProducts, createProduct } from "@/app/actions/product";
 import { getCounterparties } from "@/app/actions/counterparty";
-import { Deal, Comment, DealProduct, Product, Counterparty } from "@prisma/client";
+import { getAllUsers } from "@/app/actions/user";
+import { Deal, Comment, DealProduct, Product, Counterparty, User as PrismaUser } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Loader2, MessageSquare, Package, X, User, Building2, Hash, Briefcase, Send, FileText, Layers, Search, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,7 @@ type SerializedDeal = Omit<Deal, 'amount'> & {
     comments: Comment[];
     products: SerializedDealProduct[];
     counterparty?: Counterparty | null;
+    managers: PrismaUser[];
 };
 
 interface DealDetailsDrawerProps {
@@ -69,6 +71,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
     const [loading, setLoading] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
     const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
+    const [allUsers, setAllUsers] = useState<PrismaUser[]>([]);
     const [newComment, setNewComment] = useState("");
     const { toast } = useToast();
 
@@ -88,6 +91,8 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
         (p.sku && p.sku.toLowerCase().includes(productSearchTerm.toLowerCase()))
     );
 
+    const [managerSearchTerm, setManagerSearchTerm] = useState("");
+
     const [activeTab, setActiveTab] = useState<'comments' | 'products' | 'documents'>('comments');
 
     const [isCreatingProduct, setIsCreatingProduct] = useState(false);
@@ -106,12 +111,14 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
     }, [dealId]);
 
     const fetchData = async () => {
-        const [prods, counters] = await Promise.all([
+        const [prods, counters, users] = await Promise.all([
             getProducts(),
-            getCounterparties()
+            getCounterparties(),
+            getAllUsers()
         ]);
         setProducts(prods as unknown as Product[]);
         setCounterparties(counters as unknown as Counterparty[]);
+        setAllUsers(users as unknown as PrismaUser[]);
     };
 
     useEffect(() => {
@@ -121,11 +128,11 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
         }
     }, [open, dealId, fetchDeal]);
 
-    const handleUpdateDeal = async (field: keyof Deal | 'counterpartyId', value: string | number | null) => {
+    const handleUpdateDeal = async (field: keyof Deal | 'counterpartyId' | 'managerIds', value: any) => {
         if (!deal) return;
         const res = await updateDeal(deal.id, { [field]: value });
         if (res.success) {
-            if (field === 'counterpartyId') {
+            if (field === 'counterpartyId' || field === 'managerIds') {
                 fetchDeal();
             } else {
                 setDeal({ ...deal, [field]: value } as SerializedDeal);
@@ -233,7 +240,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                 value={deal.title}
                                 onChange={(e) => setDeal({ ...deal, title: e.target.value })}
                                 onBlur={() => handleUpdateDeal("title", deal.title)}
-                                className="text-lg font-bold bg-transparent border-transparent hover:border-border focus:border-blue-500/50 focus:bg-background h-auto px-2 py-1 -ml-2 transition-all rounded-md text-foreground"
+                                className="text-lg font-bold bg-transparent border-transparent hover:border-border focus:border-blue-500/50 focus:bg-background h-auto px-2 py-1 -ml-2 transition-all rounded-md text-foreground disabled:opacity-100 disabled:cursor-default"
                             />
                         </div>
 
@@ -327,6 +334,78 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
 
                             <div className="space-y-3">
                                 <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <User className="h-3 w-3" /> Responsible Manager
+                                </label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start h-auto min-h-[36px] px-2 py-1.5 text-xs font-bold bg-background border-border"
+                                        >
+                                            <div className="flex flex-wrap gap-1">
+                                                {deal.managers.length > 0 ? (
+                                                    deal.managers.map(m => (
+                                                        <Badge key={m.id} variant="secondary" className="text-[10px] font-bold px-1.5 py-0 h-5 bg-blue-500/10 text-blue-600 border-blue-500/20">
+                                                            {m.name || m.email}
+                                                        </Badge>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-muted-foreground font-medium">Assign Managers...</span>
+                                                )}
+                                            </div>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0 bg-popover border-border shadow-xl">
+                                        <div className="flex items-center border-b border-border px-3">
+                                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
+                                            <input
+                                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-xs outline-none placeholder:text-muted-foreground/50 text-foreground font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                                                placeholder="Search managers..."
+                                                value={managerSearchTerm}
+                                                onChange={(e) => setManagerSearchTerm(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <div className="max-h-[300px] overflow-y-auto p-1">
+                                            {allUsers.filter(u =>
+                                                (u.name?.toLowerCase().includes(managerSearchTerm.toLowerCase())) ||
+                                                (u.email.toLowerCase().includes(managerSearchTerm.toLowerCase()))
+                                            ).map((u) => {
+                                                const isSelected = deal.managers.some(m => m.id === u.id);
+                                                return (
+                                                    <div
+                                                        key={u.id}
+                                                        className={cn(
+                                                            "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-xs outline-none hover:bg-accent hover:text-accent-foreground transition-colors",
+                                                            isSelected && "bg-accent/50"
+                                                        )}
+                                                        onClick={() => {
+                                                            const newManagerIds = isSelected
+                                                                ? deal.managers.filter(m => m.id !== u.id).map(m => m.id)
+                                                                : [...deal.managers.map(m => m.id), u.id];
+                                                            handleUpdateDeal('managerIds', newManagerIds);
+                                                        }}
+                                                    >
+                                                        <div className={cn(
+                                                            "mr-2 flex h-3.5 w-3.5 items-center justify-center rounded-sm border border-primary transition-colors",
+                                                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50"
+                                                        )}>
+                                                            {isSelected && <Check className="h-3 w-3" />}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold">{u.name || 'Unnamed User'}</span>
+                                                            <span className="text-[9px] text-muted-foreground font-mono opacity-70">{u.email}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Hash className="h-3 w-3" /> Sequence Reference
                                 </label>
                                 <div className="h-9 px-3 bg-muted/20 border border-border rounded-md flex items-center text-[10px] font-mono text-muted-foreground">
@@ -343,7 +422,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                     onChange={(e) => setDeal({ ...deal, description: e.target.value })}
                                     onBlur={() => handleUpdateDeal("description", deal.description || "")}
                                     placeholder="Enter operational parameters..."
-                                    className="bg-background border-border rounded-md resize-none min-h-[120px] focus:border-blue-500/30 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/40"
+                                    className="bg-background border-border rounded-md resize-none min-h-[120px] focus:border-blue-500/30 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/40 disabled:opacity-100 disabled:cursor-default"
                                 />
                             </div>
                         </div>
@@ -461,7 +540,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                             placeholder="Enter communication sequence..."
                                             value={newComment}
                                             onChange={(e) => setNewComment(e.target.value)}
-                                            className="bg-muted/30 border-border min-h-[80px] text-xs pr-14 resize-none rounded-xl focus:border-blue-500/50 focus:bg-background transition-all text-foreground placeholder:text-muted-foreground/50"
+                                            className="bg-muted/30 border-border min-h-[80px] text-xs pr-14 resize-none rounded-xl focus:border-blue-500/50 focus:bg-background transition-all text-foreground placeholder:text-muted-foreground/50 disabled:opacity-50"
                                         />
                                         <Button
                                             className="absolute bottom-3 right-3 h-8 w-8 p-0 rounded-lg bg-blue-600 text-white hover:bg-blue-500 shadow-lg"
@@ -492,6 +571,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[380px] p-0 bg-popover border-border shadow-2xl overflow-hidden" align="end">
+                                            {/* ... rest of content remains ... */}
                                             <div className="p-2">
                                                 {isCreatingProduct ? (
                                                     <div className="p-6 space-y-5">
@@ -577,7 +657,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                                                         type="number"
                                                                         value={Number(dp.priceAtSale)}
                                                                         onChange={(e) => handleUpdateProductPrice(dp.id, Number(e.target.value))}
-                                                                        className="h-6 w-16 text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-[10px] text-foreground rounded-md p-0"
+                                                                        className="h-6 w-16 text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-[10px] text-foreground rounded-md p-0 disabled:opacity-100"
                                                                     />
                                                                 </div>
                                                             </TableCell>
@@ -586,7 +666,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                                                     type="number"
                                                                     value={dp.quantity}
                                                                     onChange={(e) => handleUpdateProductQuantity(dp.id, Number(e.target.value))}
-                                                                    className="h-6 w-12 mx-auto text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-[10px] text-foreground rounded-md p-0"
+                                                                    className="h-6 w-12 mx-auto text-center bg-transparent border-transparent hover:border-border focus:bg-background focus:border-blue-500/50 transition-all font-mono text-[10px] text-foreground rounded-md p-0 disabled:opacity-100"
                                                                 />
                                                             </TableCell>
                                                             <TableCell className="text-right px-3 py-2 font-black font-mono text-foreground text-xs">
