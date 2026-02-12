@@ -1,0 +1,6 @@
+@echo off
+echo Killing Node processes...
+taskkill /F /IM node.exe
+timeout /t 3 /nobreak >nul
+echo Generating Prisma Client...
+call npm.cmd exec -- prisma generate

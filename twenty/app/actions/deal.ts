@@ -56,6 +56,7 @@ export async function updateDeal(id: string, data: {
     amount?: number;
     counterpartyId?: string | null;
     managerIds?: string[];
+    documentNumber?: string | null;
 }) {
     try {
         const { managerIds, ...rest } = data;
@@ -200,4 +201,47 @@ async function updateDealTotalAmount(dealId: string) {
         where: { id: dealId },
         data: { amount: total },
     });
+}
+
+export async function getLatestDeal() {
+    try {
+        return await prisma.deal.findFirst({
+            orderBy: { createdAt: 'desc' },
+        });
+    } catch {
+        return null;
+    }
+}
+
+export async function generateDocumentNumber(dealId: string) {
+    try {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+
+        // Get count of deals with doc numbers this month to ensure sequence
+        const count = await prisma.deal.count({
+            where: {
+                createdAt: {
+                    gte: new Date(year, date.getMonth(), 1),
+                    lt: new Date(year, date.getMonth() + 1, 1),
+                },
+                documentNumber: { not: null }
+            }
+        });
+
+        const num = String(count + 1).padStart(3, '0');
+        const docNum = `${year}-${month}-${num}`;
+
+        await prisma.deal.update({
+            where: { id: dealId },
+            data: { documentNumber: docNum }
+        });
+
+        revalidatePath('/deals');
+        return { success: true, data: docNum };
+    } catch (e) {
+        console.error(e);
+        return { success: false, error: 'Failed to generate document number' };
+    }
 }

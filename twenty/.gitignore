@@ -36,3 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Google Service Account Credentials
+bojumbocrm-ed53600525ac.json
+*credentials.json

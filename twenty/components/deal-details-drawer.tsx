@@ -35,16 +35,20 @@ import {
     addDealProduct,
     updateDealProduct,
     removeDealProduct,
+    generateDocumentNumber,
 } from "@/app/actions/deal";
 import { getProducts, createProduct } from "@/app/actions/product";
 import { getCounterparties } from "@/app/actions/counterparty";
 import { getAllUsers } from "@/app/actions/user";
-import { Deal, Comment, DealProduct, Product, Counterparty, User as PrismaUser } from "@prisma/client";
+import { getDocumentTemplates, getDealDocuments, deleteGeneratedDocument, generateTemplateDocx, saveGeneratedDocument } from "@/app/actions/documents";
+import { Deal, Comment, DealProduct, Product, Counterparty, User as PrismaUser, DocumentTemplate } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
+import { saveAs } from 'file-saver';
 import { Plus, Trash2, Loader2, MessageSquare, Package, X, User, Building2, Hash, Briefcase, Send, FileText, Layers, Search, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type SerializedDealProduct = Omit<DealProduct, 'priceAtSale'> & {
     priceAtSale: string | number;
@@ -53,6 +57,7 @@ type SerializedDealProduct = Omit<DealProduct, 'priceAtSale'> & {
 
 type SerializedDeal = Omit<Deal, 'amount'> & {
     amount: string | number;
+    documentNumber?: string | null;
     comments: Comment[];
     products: SerializedDealProduct[];
     counterparty?: Counterparty | null;
@@ -93,7 +98,10 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
 
     const [managerSearchTerm, setManagerSearchTerm] = useState("");
 
-    const [activeTab, setActiveTab] = useState<'comments' | 'products'>('comments');
+    const [activeTab, setActiveTab] = useState<'comments' | 'products' | 'documents'>('comments');
+    const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
+    const [dealDocuments, setDealDocuments] = useState<any[]>([]);
+    const [isGenerating, setIsGenerating] = useState<string | null>(null);
 
     const [isCreatingProduct, setIsCreatingProduct] = useState(false);
     const [newProductData, setNewProductData] = useState({
@@ -111,14 +119,18 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
     }, [dealId]);
 
     const fetchData = async () => {
-        const [prods, counters, users] = await Promise.all([
+        const [prods, counters, users, temps, docs] = await Promise.all([
             getProducts(),
             getCounterparties(),
-            getAllUsers()
+            getAllUsers(),
+            getDocumentTemplates(),
+            dealId ? getDealDocuments(dealId) : Promise.resolve([])
         ]);
         setProducts(prods as unknown as Product[]);
         setCounterparties(counters as unknown as Counterparty[]);
         setAllUsers(users as unknown as PrismaUser[]);
+        setTemplates(temps as unknown as DocumentTemplate[]);
+        setDealDocuments(docs as any[]);
     };
 
     useEffect(() => {
@@ -128,7 +140,7 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
         }
     }, [open, dealId, fetchDeal]);
 
-    const handleUpdateDeal = async (field: keyof Deal | 'counterpartyId' | 'managerIds', value: any) => {
+    const handleUpdateDeal = async (field: keyof Deal | 'counterpartyId' | 'managerIds' | 'documentNumber', value: any) => {
         if (!deal) return;
         const res = await updateDeal(deal.id, { [field]: value });
         if (res.success) {
@@ -199,6 +211,71 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
             setIsCreatingProduct(false);
             setNewProductData({ name: "", defaultPrice: "", sku: "" });
             fetchData();
+        }
+    };
+
+    const handleGenerateDocument = async (templateId: string) => {
+        if (!deal) return;
+
+        let currentDocNum = deal.documentNumber;
+
+        // Auto-generate doc number if missing
+        if (!currentDocNum) {
+            const genRes = await generateDocumentNumber(deal.id);
+            if (genRes.success) {
+                currentDocNum = genRes.data;
+                fetchDeal(); // Refresh local state
+            } else {
+                toast({ variant: "destructive", title: "Registration Failure", description: "Failed to allocate document number." });
+                return;
+            }
+        }
+
+        setIsGenerating(templateId);
+
+        try {
+            const res = await generateTemplateDocx(templateId, deal.id);
+            if (res.success && res.data) {
+                const fileName = res.filename || `${deal.title}.docx`;
+
+                // Save to CRM with Google Docs metadata
+                const saveRes = await saveGeneratedDocument(
+                    deal.id,
+                    fileName,
+                    res.data,
+                    templateId,
+                    res.googleDocId,
+                    res.viewLink
+                );
+
+                if (saveRes.success) {
+                    await fetchData(); // Refresh documents list
+                    toast({
+                        title: "Document Generated",
+                        description: res.viewLink
+                            ? `${fileName} created successfully. View in Google Docs.`
+                            : `${fileName} created successfully.`
+                    });
+                } else {
+                    toast({ variant: "destructive", title: "Vault Failure", description: saveRes.error });
+                }
+            } else {
+                toast({ variant: "destructive", title: "Generator Failure", description: res.error });
+            }
+        } catch (error) {
+            toast({ variant: "destructive", title: "System Error", description: "Critical failure in document synthesis." });
+        } finally {
+            setIsGenerating(null);
+        }
+    };
+
+    const handleDeleteDocument = async (docId: string) => {
+        const res = await deleteGeneratedDocument(docId);
+        if (res.success) {
+            await fetchData();
+            toast({ title: "Document Purged", description: "Record removed from the vault." });
+        } else {
+            toast({ variant: "destructive", title: "Purge Failed", description: res.error });
         }
     };
 
@@ -406,10 +483,29 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
 
                             <div className="space-y-3">
                                 <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <Hash className="h-3 w-3" /> Sequence Reference
+                                    <Hash className="h-3 w-3" /> Official Registry №
                                 </label>
-                                <div className="h-9 px-3 bg-muted/20 border border-border rounded-md flex items-center text-[10px] font-mono text-muted-foreground">
-                                    {deal.id.split('-')[0].toUpperCase()} / 2024 / STABLE
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={deal.documentNumber || ""}
+                                        onChange={(e) => setDeal({ ...deal, documentNumber: e.target.value })}
+                                        onBlur={() => handleUpdateDeal("documentNumber", deal.documentNumber)}
+                                        placeholder="UNASSIGNED"
+                                        className="h-9 text-[10px] font-mono bg-muted/20 border-border focus:bg-background text-foreground uppercase"
+                                    />
+                                    {!deal.documentNumber && (
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 shrink-0 border-blue-500/30 text-blue-500 hover:bg-blue-500/10"
+                                            onClick={async () => {
+                                                const res = await generateDocumentNumber(deal.id);
+                                                if (res.success) fetchDeal();
+                                            }}
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 
@@ -468,6 +564,20 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                 <div className="flex items-center gap-2">
                                     <Package className="h-3.5 w-3.5" />
                                     Inventory
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('documents')}
+                                className={cn(
+                                    "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all",
+                                    activeTab === 'documents'
+                                        ? "bg-background text-foreground shadow-sm border border-border/50"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    Export
                                 </div>
                             </button>
                         </div>
@@ -672,9 +782,139 @@ export function DealDetailsDrawer({ dealId, open, onOpenChange, onUpdate }: Deal
                                 </ScrollArea>
                             </div>
                         )}
+
+                        {/* DOCUMENTS TAB */}
+                        {activeTab === 'documents' && (
+                            <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 overflow-hidden">
+                                <ScrollArea className="flex-1">
+                                    <div className="p-8 space-y-12 max-w-2xl mx-auto w-full">
+                                        {/* Generation Section */}
+                                        <section className="space-y-6">
+                                            <div className="space-y-2 border-l-2 border-blue-500 pl-4 py-1">
+                                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Synthesis Engine</h3>
+                                                <p className="text-[11px] text-muted-foreground font-medium uppercase leading-relaxed opacity-70">
+                                                    Deploy operational data into official blueprints.
+                                                </p>
+                                            </div>
+
+                                            <div className="grid gap-3">
+                                                {templates.length === 0 ? (
+                                                    <div className="p-12 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center opacity-40 bg-muted/20">
+                                                        <FileText className="h-8 w-8 mb-4 text-muted-foreground" />
+                                                        <p className="text-[9px] font-black uppercase tracking-widest">Registry Empty</p>
+                                                    </div>
+                                                ) : (
+                                                    templates.map((template) => (
+                                                        <div key={template.id} className="group p-4 bg-card border border-border rounded-xl hover:border-blue-500/30 transition-all shadow-sm flex items-center justify-between">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-10 w-10 rounded-lg bg-blue-500/5 border border-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                                                                    <FileText className="h-5 w-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="text-[10px] font-black uppercase tracking-tight text-foreground">{template.name}</h4>
+                                                                    <span className="text-[8px] font-mono text-muted-foreground uppercase opacity-50">Blueprint v.1.0</span>
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                onClick={() => handleGenerateDocument(template.id)}
+                                                                disabled={isGenerating === template.id}
+                                                                className="h-8 px-5 bg-blue-600 hover:bg-blue-500 text-white font-black text-[9px] uppercase tracking-widest rounded-md transition-all active:scale-95 shadow-lg shadow-blue-500/10"
+                                                            >
+                                                                {isGenerating === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Synthesize"}
+                                                            </Button>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </section>
+
+                                        {/* Archive Section */}
+                                        <section className="space-y-6">
+                                            <div className="space-y-2 border-l-2 border-zinc-400 pl-4 py-1">
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Archive Vault</h3>
+                                                    <Badge className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 text-[8px] font-black px-1.5 py-0 h-4 border-none uppercase">{dealDocuments.length}</Badge>
+                                                </div>
+                                                <p className="text-[11px] text-muted-foreground font-medium uppercase leading-relaxed opacity-70">
+                                                    Access previously generated records.
+                                                </p>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                {dealDocuments.length === 0 ? (
+                                                    <div className="p-12 border border-dashed border-border rounded-xl flex flex-col items-center justify-center opacity-30 bg-muted/10">
+                                                        <Layers className="h-6 w-6 mb-3" />
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em]">Vault Secure: No Records</span>
+                                                    </div>
+                                                ) : (
+                                                    dealDocuments.map((doc) => (
+                                                        <div key={doc.id} className="group p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-border/40 rounded-lg hover:border-blue-500/20 transition-all flex items-center justify-between">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-8 w-8 rounded bg-background border border-border flex items-center justify-center text-muted-foreground group-hover:text-blue-500 transition-colors">
+                                                                    <FileText className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[10px] font-bold text-foreground truncate max-w-[200px]">{doc.name}</span>
+                                                                    <span className="text-[8px] text-muted-foreground font-mono uppercase opacity-60">Generated: {new Date(doc.createdAt).toLocaleDateString()}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 px-4 text-[9px] font-black uppercase tracking-widest hover:bg-background border border-transparent hover:border-border transition-all"
+                                                                    onClick={() => {
+                                                                        const byteCharacters = atob(doc.content);
+                                                                        const byteNumbers = new Array(byteCharacters.length);
+                                                                        for (let i = 0; i < byteCharacters.length; i++) {
+                                                                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                                                        }
+                                                                        const byteArray = new Uint8Array(byteNumbers);
+                                                                        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                                                                        saveAs(blob, doc.name);
+                                                                    }}
+                                                                >
+                                                                    Retrieve
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all rounded-md"
+                                                                    onClick={() => handleDeleteDocument(doc.id)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </section>
+
+                                        {/* Footer Management */}
+                                        <div className="pt-12">
+                                            <div className="p-4 rounded-xl bg-muted/30 border border-border/50 flex items-center gap-4">
+                                                <div className="h-8 w-8 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-400">
+                                                    <Layers className="h-4 w-4" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-foreground">Registry Management</p>
+                                                    <p className="text-[8px] text-muted-foreground uppercase mt-0.5">Control center for blueprints & logic.</p>
+                                                </div>
+                                                <Link href="/admin/templates">
+                                                    <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest px-4 hover:bg-zinc-900 hover:text-white">
+                                                        Terminal
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        )}
                     </div>
                 </div>
-            </SheetContent>
-        </Sheet>
+            </SheetContent >
+        </Sheet >
     );
 }

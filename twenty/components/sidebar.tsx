@@ -151,6 +151,18 @@ export function Sidebar({ className }: SidebarProps) {
                             <Briefcase className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
                             <span className="tracking-tight">Логіка & Воронки</span>
                         </Link>
+                        <Link
+                            href="/admin/templates"
+                            className={cn(
+                                "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200 group",
+                                pathname === "/admin/templates"
+                                    ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 font-bold"
+                                    : "text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 border border-transparent font-medium"
+                            )}
+                        >
+                            <FileText className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                            <span className="tracking-tight">Blueprints Registry</span>
+                        </Link>
                     </div>
                 </div>
             </div>

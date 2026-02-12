@@ -31,6 +31,7 @@ model Deal {
   id             String        @id @default(cuid())
   title          String
   description    String?
+  documentNumber String?       // Official document sequence number
   amount         Decimal       @default(0)
   status         String        @default("OPEN") // STATUS: OPEN, WON, LOST
   stageId        String
@@ -39,9 +40,22 @@ model Deal {
   counterparty   Counterparty? @relation(fields: [counterpartyId], references: [id])
   products       DealProduct[]
   comments       Comment[]
+  documents      GeneratedDocument[]
   managers       User[]        @relation("DealManagers")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+}
+
+model GeneratedDocument {
+  id          String   @id @default(cuid())
+  name        String
+  content     String   // Base64 encoded file content (PDF/DOCX export)
+  googleDocId String?  // Google Docs document ID (source)
+  viewLink    String?  // Shareable link to Google Doc
+  dealId      String
+  deal        Deal     @relation(fields: [dealId], references: [id])
+  templateId  String?
+  createdAt   DateTime @default(now())
 }
 
 enum CounterpartyType {
@@ -95,6 +109,15 @@ model Comment {
   updatedAt DateTime @updatedAt
 }
 
+model DocumentTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  googleDocId         String   // Google Docs template ID
+  googleDriveFolderId String?  // Optional: specific folder for this template's generated docs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model User {
   id        String     @id @default(cuid())
   email     String     @unique
@@ -122,5 +145,10 @@ enum UserStatus {
   PENDING
   ACTIVE
   REJECTED
+}
+
+model SystemSetting {
+  key   String @id
+  value String
 }
 
